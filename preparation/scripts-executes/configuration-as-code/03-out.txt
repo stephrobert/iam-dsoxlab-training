@@ -1,0 +1,20 @@
+Logging into http://localhost:8080 as user admin of realm master
+=== K. secret dans les fichiers versionnables ? ===
+main.tf:0
+variables.tf:0
+versions.tf:0
+=== L. secret dans le state ? ===
+0
+-rw-rw-r-- 1 bob bob 12104 oct.  15 22:04 terraform.tfstate
+=== M. export partiel ===
+54093 ../export-formation.json
+jq: error (at ../export-formation.json:1604): Cannot iterate over null (null)
+formation
+=== N. import + generate-config-out dans un dossier vide ===
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+
+Error: failed to read schema for keycloak_realm.formation in registry.terraform.io/hashicorp/keycloak: failed to instantiate provider "registry.terraform.io/hashicorp/keycloak" to obtain schema: unavailable provider "registry.terraform.io/hashicorp/keycloak"
+
+wc: generated.tf: No such file or directory
+grep: generated.tf: No such file or directory

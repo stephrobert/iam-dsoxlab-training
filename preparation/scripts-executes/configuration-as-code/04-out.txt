@@ -1,0 +1,32 @@
+Logging into http://localhost:8080 as user admin of realm master
+=== O. secret stable dans un fichier hors dépôt ===
+-rw------- 1 bob bob 32 oct.  15 22:05 /tmp/claude-1000/-home-bob-Projets-test-astro-5/35a3c76a-c83b-471f-8a4e-cbcb743fffe5/scratchpad/author-cac/boutique.secret
+--- apply avec le nouveau secret (rotation) ---
+  # keycloak_openid_client.boutique will be updated in-place
+      ~ client_secret                                  = (sensitive value)
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+--- secret dans le state ? (compte) ---
+1
+--- secret côté Keycloak == fichier ? ---
+
+identique
+--- secret dans les .tf ? ---
+main.tf:0
+variables.tf:0
+versions.tf:0
+=== M. export partiel (query params) ===
+76228 ../export-formation.json
+realm: formation
+roles: default-roles-formation,intrus,lecteur,uma_authorization,offline_access,editeur
+groupes: equipe-boutique
+secret exporté: **********
+redirect: https://boutique.exemple.fr/callback
+=== N. import + generate-config-out ===
+Terraform has been successfully initialized!
+
+Error: failed to read schema for keycloak_openid_client.boutique in registry.terraform.io/hashicorp/keycloak: failed to instantiate provider "registry.terraform.io/hashicorp/keycloak" to obtain schema: unavailable provider "registry.terraform.io/hashicorp/keycloak"
+
+wc: generated.tf: No such file or directory
+grep: generated.tf: No such file or directory

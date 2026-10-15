@@ -1,0 +1,5 @@
+title: "Exposer un Deployment par un Service ClusterIP"
+description: |
+  Déployer trois replicas d'un serveur et les exposer par un Service
+  interne. Prouver depuis un client que le Service répond par son nom, et
+  qu'il répartit réellement les requêtes entre les trois Pods.

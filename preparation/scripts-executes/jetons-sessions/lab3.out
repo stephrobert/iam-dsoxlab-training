@@ -1,0 +1,75 @@
+##### B1 jetons
+{
+  "expires_in": 300,
+  "refresh_expires_in": 1800,
+  "token_type": "Bearer",
+  "not-before-policy": 0,
+  "session_state": "r1mwvz7S31VLgAA5INDS5LjF",
+  "scope": "openid profile email"
+}
+{
+  "typ": "Bearer",
+  "azp": "cli-observation",
+  "aud": [
+    "api-demo",
+    "account"
+  ],
+  "sid": "r1mwvz7S31VLgAA5INDS5LjF",
+  "ttl": 300
+}
+{
+  "typ": "ID",
+  "aud": "cli-observation",
+  "ttl": 300
+}
+{
+  "typ": "Refresh",
+  "sid": "r1mwvz7S31VLgAA5INDS5LjF",
+  "ttl": 1800
+}
+##### B2 refresh sans rotation
+nouveau refresh token émis
+{"expires_in":300,"error":null}
+##### B3 rotation
+Logging into http://localhost:8080 as user admin of realm master
+{"error":"invalid_grant","error_description":"Maximum allowed refresh token reuse exceeded"}
+{"error":"invalid_grant","error_description":"Session doesn't have required client"}
+##### B4 introspection
+{
+  "active": true,
+  "username": "alice",
+  "client_id": "cli-observation",
+  "aud": [
+    "api-demo",
+    "account"
+  ],
+  "scope": "openid profile email"
+}
+{"active":false}
+userinfo: 200
+
+sessions SSO ouvertes: 3
+
+{
+  "username": "alice",
+  "clients": {
+    "c465a509-1f95-411a-995c-90d611bda8c3": "cli-observation"
+  }
+}
+##### B5 logout
+logout: 204
+
+sessions SSO ouvertes: 2
+{"error":"invalid_grant","error_description":"Session not active"}
+{"active":false}
+userinfo: 401
+exp dans le futur: true
+##### B6 revoke (RFC 7009)
+revoke: 200
+{"error":"invalid_grant","error_description":"Session not active"}
+{"active":false}
+##### B7 sessions utilisateur
+
+avant: 4
+
+après: 0

@@ -1,0 +1,12 @@
+p='src/content/docs/docs/services/identite/keycloak/mfa-flows.mdx'
+t=open(p).read()
+a=t.index("Le piège est ici.")
+b=t.index("\n",a)
+new=("Le piège est ici. **Observé sur Keycloak 26.7.0**, sur un sous-flow 2FA qui ne garde que la condition de rôle (sans `Condition - user configured`) et dont OTP et WebAuthn sont en `ALTERNATIVE` : un membre de `devops` sans facteur enregistré est **refusé**. Le navigateur reçoit une page « We are sorry... » (HTTP 400) portant le message **`Invalid username or password.`**, et l'événement `LOGIN_ERROR` porte l'erreur **`invalid_user_credentials`**, sans `userId`. Le message `Cannot login, credential setup required.` que prévoit le code pour `CREDENTIAL_SETUP_REQUIRED` n'apparaît pas à l'écran : l'utilisateur ne voit donc rien qui indique un facteur manquant. Poser l'action requise `CONFIGURE_TOTP` n'y change rien. La cause se lit dans `DefaultAuthenticationFlow` : un authentificateur non configuré ne déclenche la mise en place du facteur que si son exécution est `REQUIRED`. Avec la condition `Condition - user configured` rétablie plus haut, le cas ne se présente pas pour `alice` : le sous-flow 2FA est sauté, et c'est le sous-flow d'enrôlement qui prend le relais.")
+t=t[:a]+new+t[b:]
+old=t[t.index("Un sous-flow créé se place **avant**"):t.index("\n",t.index("Un sous-flow créé se place **avant**"))]
+t=t.replace(old,"Un sous-flow créé arrive avec la priorité `0`, donc **avant** `browser-mfa Browser - Conditional 2FA` (priorité `10`), juste après le mot de passe. **L'ordre des exécutions** compte : le sous-flow d'enrôlement interroge le sous-flow 2FA, qui doit donc avoir joué avant lui, sans quoi la condition `not-executed` serait toujours vraie. On le **descend d'un rang** avec `lower-priority`, puis on vérifie l'ordre.")
+t=t.replace("kcadm create authentication/executions/$ID/lower-priority -r lab -b '{}'\nkcadm create authentication/executions/$ID/lower-priority -r lab -b '{}'\n","kcadm create authentication/executions/$ID/lower-priority -r lab -b '{}'\n")
+t=t.replace("| L'enrôlement passe avant le mot de passe | sous-flow créé en tête de liste |","| L'enrôlement passe avant le sous-flow 2FA | sous-flow créé avec la priorité `0` |")
+t=t.replace("| `devops` voit un refus de connexion (`invalid_user_credentials`) au lieu d'un enrôlement |","| `devops` voit « Invalid username or password. » (événement `invalid_user_credentials`) au lieu d'un enrôlement |")
+open(p,'w').write(t)

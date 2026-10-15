@@ -1,0 +1,204 @@
+---
+# Contrat déclaratif consommé par la CLI dsoxlab.
+# https://github.com/stephrobert/dsoxlab
+#
+# Ce catalogue complète la formation Kubernetes du blog. Il ne redit pas les
+# guides : il donne à l'apprenant de quoi PROUVER qu'il sait faire, ce que ni
+# un quiz ni une lecture ne peuvent établir.
+schema_version: 1
+
+repo:
+  id: kubernetes-dsoxlab-training
+  category: kubernetes
+  title: "Kubernetes DevSecOps Training : CKA, CKAD et CKS"
+  blog_url: "https://blog.stephane-robert.info/docs/conteneurs/orchestrateurs/kubernetes/"
+  # Où `dsoxlab support --issue` dépose le rapport d'un apprenant.
+  #
+  # Sans ce champ, dsoxlab retombe sur `git remote get-url origin`, ce qui
+  # marche ici mais suppose deux choses : un remote nommé `origin`, et un
+  # hébergeur dont les issues vivent sous `<dépôt>/issues`. Le déclarer lève
+  # la supposition.
+  issues_url: "https://github.com/stephrobert/kubernetes-dsoxlab-training/issues"
+  description: |
+    Labs vérifiables pour la formation Kubernetes du blog Stéphane Robert.
+    Chaque lab est jumelé à une leçon du site et valide une compétence
+    nommée par un blueprint officiel, CKA, CKAD ou CKS.
+
+    Ces trois examens sont entièrement PRATIQUES : le candidat répare ou
+    construit sur un cluster réel, il ne reconnaît pas une bonne réponse
+    parmi quatre. Un quiz ne prépare donc pas à l'épreuve, il prépare au
+    vocabulaire. C'est le trou que ce catalogue comble.
+
+# Topologie d'infrastructure.
+#
+# POURQUOI DES VM, ALORS QUE LA FORMATION ENSEIGNE SUR kind.
+# La règle 11 de la section Kubernetes impose kind comme outil unique des
+# GUIDES, parce que l'apprenant doit pouvoir suivre la formation sur son
+# poste. Ce catalogue répond à une autre question, et sa règle 7 la pose :
+# certains faits ne se prouvent PAS dans un conteneur, parce que kind et k3d
+# partagent le noyau de l'hôte. Relevé en lab le 2026-09-14, le kubelet d'un
+# nœud kind refuse un Pod AppArmor avec « Cannot enforce AppArmor: AppArmor
+# is not enabled on the host ».
+#
+# Ce que les VM débloquent, et que la formation a dû classer « non couvert » :
+#   - AppArmor et les profils de confinement du nœud
+#   - la montée de version kubeadm, control plane et kubelets réels
+#   - le durcissement de l'OS hôte, l'accès réseau externe, le point de
+#     métadonnées du nœud (compétences Cluster Setup et System Hardening CKS)
+#   - le diagnostic d'un kubelet, d'un pod statique ou d'un etcd cassé
+#
+# Les deux approches ne se concurrencent pas : la formation enseigne, ce
+# catalogue éprouve.
+infra:
+  provider:
+    - kvm
+    - incus
+  # « lab-kubernetes » est REFUSÉ : le pont dérivé, virbr-kubernetes, fait
+  # 16 caractères alors que le noyau en accepte 15. libvirt échoue alors en
+  # cours d'apply sur « Numerical result out of range », message qui ne nomme
+  # pas la cause. Le nom du pont vaut virbr- plus le nom du réseau privé de
+  # son préfixe lab- : il reste donc 9 caractères utiles.
+  network: lab-k8s
+  cidr: 10.10.50.0/24
+
+  # ATTENTION : l'IP et la MAC de chaque hôte dérivent de sa POSITION dans
+  # cette liste. Insérer un hôte au milieu réattribue les adresses de tous
+  # les suivants, ce que le provider libvirt refuse en cours de route.
+  # Tout nouvel hôte s'ajoute EN FIN DE LISTE.
+  hosts:
+    # Ubuntu 24.04 parce que c'est ce que recommande le guide kubeadm publié.
+    # Aligner le lab sur le guide évite à l'apprenant de traduire une
+    # procédure pendant qu'il apprend la procédure.
+    - name: k8s-cp.lab
+      distro: ubuntu24
+      role: control-plane
+      # kubeadm refuse d'initialiser en dessous de 2 vCPU et 1,7 Go. On prend
+      # de la marge : le control plane porte etcd, l'API server et, pendant
+      # les labs de diagnostic, des Pods qu'on casse volontairement.
+      ram_mb: 4096
+      vcpu: 2
+      disk_gb: 25
+
+    - name: k8s-w1.lab
+      distro: ubuntu24
+      role: worker
+      ram_mb: 2560
+      vcpu: 2
+      disk_gb: 20
+
+# Sections et niveaux reprennent les DOMAINES des blueprints officiels, mot
+# pour mot. C'est ce qui permet de répondre à la seule question qui compte
+# pour un candidat : « combien de compétences de l'examen puis-je démontrer ? »
+sections:
+  - id: cka
+    title: "CKA, Certified Kubernetes Administrator"
+    description: |
+      Cinq domaines. Le troubleshooting pèse 30 %, plus que tout autre, et
+      c'est celui qui sépare ceux qui connaissent Kubernetes de ceux qui
+      savent l'exploiter.
+    labs:
+      - cka-static-pod
+      - cka-daemonset-all-nodes
+      - cka-rbac-serviceaccount
+      - cka-taints-tolerations-placement
+      - cka-node-affinity
+      - cka-networkpolicy-isolate-db
+      # Les deux labs de routage se suivent, et dans cet ordre : ils posent la
+      # MÊME situation de départ, et seule la façon de la router change.
+      # L'apprenant qui vient d'écrire un Ingress voit alors ce que la Gateway
+      # API sépare, et ce qu'elle ne change pas.
+      - cka-ingress-path-routing
+      - cka-gateway-api-httproute
+      - cka-pv-pvc-storageclass
+      - cka-storageclass-provisionnement-dynamique
+      - cka-deployment-rollout-rollback
+      - cka-node-drain-cordon
+      - cka-hpa-autoscaling
+      - cka-resourcequota-limitrange
+      - cka-troubleshoot-imagepullbackoff
+      - cka-troubleshoot-crashloopbackoff
+      - cka-kubectl-debug
+      - cka-troubleshoot-dns
+      - cka-troubleshoot-networking
+      - cka-troubleshoot-node-notready
+      - cka-troubleshoot-kubelet
+      - cka-troubleshoot-apiserver
+      - cka-etcd-backup-restore
+      # La montée de version vient juste après la sauvegarde d'etcd, et dans
+      # cet ordre : on n'opère pas sur un plan de contrôle dont on ne sait pas
+      # restaurer l'état. C'est aussi le seul lab du catalogue qui reconstruit
+      # le cluster, d'où sa place tardive.
+      - cka-kubeadm-upgrade
+      # Le capstone vient en dernier : il suppose les dix-neuf précédents joués,
+      # puisqu'il ne dit plus quel est le sujet de la panne.
+      - cka-capstone-portail
+
+  - id: ckad
+    title: "CKAD, Certified Kubernetes Application Developer"
+    description: |
+      Cinq domaines orientés application. « Application Environment,
+      Configuration and Security » pèse 25 %, le plus lourd des cinq.
+    labs:
+      - ckad-pod-resources-labels
+      - ckad-configmap-secret-injection
+      - ckad-secret-injection-protection
+      - ckad-probes-all-types
+      - ckad-init-container
+      - ckad-multi-container-sidecar
+      - ckad-volumes-partage-entre-conteneurs
+      - ckad-expose-service
+      - ckad-security-context-hardened
+      - ckad-rbac-role-rolebinding
+      - ckad-networkpolicy-ingress-egress
+      - ckad-rolling-update-strategy
+      - ckad-blue-green-deployment
+      - ckad-kustomize-overlays
+      - ckad-helm-install-upgrade
+      - ckad-job-cronjob
+      - ckad-in-place-pod-vertical-scaling
+      - ckad-troubleshoot-missing-configmap
+      - ckad-troubleshoot-crashloop
+      # Le capstone vient en dernier, et ce n'est pas qu'une question d'ordre :
+      # il ne s'adresse qu'à qui a déjà joué les dix-sept précédents, puisqu'il
+      # ne dit plus quel objet employer.
+      - ckad-capstone-boutique
+
+  - id: cks
+    title: "CKS, Certified Kubernetes Security Specialist"
+    description: |
+      Six domaines. Trois d'entre eux pèsent 20 % chacun, soit 60 % à eux
+      seuls. Plusieurs compétences y sont invérifiables sur un cluster en
+      conteneur, ce qui est la raison d'être des VM de ce catalogue.
+    labs:
+      - cks-apparmor-confiner-un-pod
+      - cks-seccomp-profile
+      - cks-pod-security-admission
+      - cks-secure-existing-pod
+      # L'immuabilité suit la reprise d'un Pod privilégié, et ne la répète
+      # pas : le lab précédent porte sur le privilège et le partage de
+      # namespaces avec l'hôte, celui-ci sur le système de fichiers et sur ce
+      # que le fermer coûte à une application qui écrit pour démarrer.
+      - cks-security-context-immutable
+      - cks-runtime-sandbox-gvisor
+      - cks-image-pinned-digest
+      - cks-validating-admission-policy
+      - cks-image-scanning-trivy
+      - cks-cosign-verify-image
+      - cks-dockerfile-static-analysis
+      - cks-rbac-least-privilege
+      - cks-api-server-hardening
+      - cks-audit-log-policy
+      - cks-networkpolicy-default-deny
+      # Le mTLS vient juste après la NetworkPolicy, et dans cet ordre : l'un
+      # décide QUI a le droit de parler, l'autre exige que celui qui parle
+      # prouve son identité. Les deux répondent à des questions différentes,
+      # et l'apprenant qui a posé un default-deny voit mieux ce que le
+      # chiffrement ajoute par-dessus.
+      - cks-istio-mtls-lockdown
+      - cks-ingress-tls
+      - cks-cis-benchmark-remediate
+
+      # Le capstone vient en dernier, comme ceux du CKA et du CKAD : il ne
+      # nomme plus aucun objet Kubernetes, et ne s'adresse donc qu'à qui a
+      # déjà joué les quinze précédents.
+      - cks-capstone-enclave

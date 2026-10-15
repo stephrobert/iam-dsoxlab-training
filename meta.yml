@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/meta.schema.json
+#
+# Catalogue iam-dsoxlab-training, décrit par le contrat v1 de dsoxlab.
+#
+# Les labs de la formation « Gestion des identités et des accès » du blog. Le
+# parcours compte deux niveaux : brancher une application sur un fournisseur
+# d'identité, puis exploiter et gouverner. L'ordre ci-dessous est celui du JEU,
+# tel que le cadrage de la formation le fixe, et non celui de la numérotation
+# des fiches : les labs 11 et 12 se jouent au module 4, le 13 au module 6, le
+# 14 au module 7.
+#
+# Chaque niveau se termine par son épreuve, sans indice et chronométrée. C'est
+# aussi l'ordre que `dsoxlab next` suit, puisqu'il le dérive de cette liste.
+schema_version: 1
+
+repo:
+  id: iam-dsoxlab-training
+  category: iam
+  title: "IAM Training: wire an application to an identity provider, then run it"
+  blog_url: "https://blog.stephane-robert.info/docs/services/identite/"
+  issues_url: "https://github.com/stephrobert/iam-dsoxlab-training/issues"
+  description: |
+    Labs for the identity and access management course. Level one wires real
+    applications to a real identity provider: Keycloak with its database, an
+    application in OIDC with PKCE, an API behind access tokens, a directory
+    federated by LDAP, a service federated by SAML, an external provider
+    brokered in, and a broken integration to diagnose. Level two runs it:
+    strong authentication, the lifecycle of a leaving employee, access review,
+    the platform wired in, backup and upgrade, and the realm described as code.
+
+    Every lab is graded on the state of the system, never on the commands
+    typed: the tests question Keycloak through its administration API and its
+    OIDC endpoints, the directory through LDAP, and the witness applications
+    through their own responses.
+
+# Tout tourne sur UNE machine, en conteneurs : Keycloak, sa base PostgreSQL,
+# l'annuaire LLDAP, l'application témoin et l'API témoin. Deux labs demandent
+# plus que cela sur la même machine, et c'est ce qui fixe le dimensionnement :
+#
+#   - `iam-11-federation-externe` lance un SECOND Keycloak, qui joue le
+#     fournisseur d'identité de l'entreprise partenaire. Un compte chez un
+#     fournisseur public rendrait le lab injouable hors ligne et dépendant
+#     d'un service que personne ne contrôle ;
+#   - `iam-14-plateforme` monte un cluster k3d DANS la machine, pour brancher
+#     le serveur d'API sur l'IdP. Pas de cluster sur le poste de l'apprenant.
+#
+# D'où 6 Go plutôt que les 4 Go du minimum : deux Keycloak et un cluster k3d
+# ne tiennent pas dans 4 Go, et une machine qui gonfle en cours de lab se fait
+# tuer par le noyau au moment le moins utile. À confirmer en jouant le lab 14,
+# qui est le plus lourd du catalogue.
+infra:
+  # Provider choisi par l'apprenant : dsoxlab use --provider kvm.
+  provider:
+    - kvm
+    - incus
+  # Le pont vaut `virbr-<réseau sans lab->`, et le noyau limite un nom
+  # d'interface à 15 caractères : `lab-iam` donne `virbr-iam`, neuf caractères.
+  #
+  # CIDR déjà pris par les catalogues voisins : 10.10.20 Ansible,
+  # 10.10.30 Linux, 10.10.40 validation des guides, 10.10.50 Kubernetes,
+  # 10.10.60 DevSecOps, 10.10.70 Cloud.
+  network: lab-iam
+  cidr: 10.10.80.0/24
+  # L'IP et la MAC dérivent de la POSITION dans cette liste : tout nouvel hôte
+  # s'ajoute EN FIN DE LISTE, sinon les adresses des suivants sont réattribuées
+  # et libvirt refuse le plan en cours de route.
+  hosts:
+    - name: idp.lab
+      distro: ubuntu24
+      role: idp
+      ram_mb: 6144
+      vcpu: 2
+      disk_gb: 30
+
+# UN LAB ENTRE DANS CETTE LISTE LE JOUR OÙ IL EST ÉCRIT ET JOUÉ, PAS AVANT.
+#
+# `dsoxlab validate-structure` refuse un lab déclaré ici dont le `lab.yaml`
+# n'existe pas, et il a raison : « rien ne le chargera jamais ». Déclarer les
+# seize d'avance mettrait le catalogue en faute dès le premier contrôle, et
+# surtout ferait annoncer à `dsoxlab next` un parcours dont presque rien
+# n'existe.
+#
+# L'ordre de jeu est fixé, lui, et il est tenu par le cadrage de la formation.
+# Chaque lab s'insère À SA PLACE dans la liste de sa section, pas à la fin :
+#
+#   niveau-1, dans cet ordre
+#     iam-02-keycloak-installer      module 2
+#     iam-04-client-oidc-pkce        module 3
+#     iam-05-api-protegee            module 3
+#     iam-01-annuaire-lldap          module 4
+#     iam-03-federation-ldap         module 4
+#     iam-06-federation-saml         module 4
+#     iam-11-federation-externe      module 4
+#     iam-12-depanner-integration    module 4
+#     iam-epreuve-n1                 épreuve du niveau 1
+#
+#   niveau-2, dans cet ordre
+#     iam-07-mfa-keycloak            module 5
+#     iam-08-depart-collaborateur    module 6
+#     iam-13-revue-des-acces         module 6
+#     iam-14-plateforme              module 7
+#     iam-09-sauvegarde-montee-version  module 8
+#     iam-10-realm-as-code           module 8
+#     iam-epreuve                    épreuve du niveau 2
+sections:
+  - id: niveau-1
+    title: "Level 1: wire an application to an identity provider"
+    description: "Install Keycloak with its database, wire an application in OIDC with PKCE, put an API behind access tokens, federate a directory and a SAML service, broker an external provider, and diagnose a broken integration. Ends with the level exam."
+    labs: []
+
+  - id: niveau-2
+    title: "Level 2: run and govern"
+    description: "Enforce strong authentication, handle a leaving employee, review access, wire the platform in, back up and upgrade the provider, and describe the realm as code. Ends with the final exam."
+    labs: []

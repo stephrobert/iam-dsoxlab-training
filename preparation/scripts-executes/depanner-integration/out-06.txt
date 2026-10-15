@@ -1,0 +1,26 @@
+Created new client with id '2030d756-2fae-43c8-84a7-3ea94931e460'
+--- AuthnRequest correcte
+ Sign in to lab 
+ "/realms/lab/login-actions/restart?client_id=https%3A%2F%2Fsp.exemple.fr%2Fmetadata&tab_id=PIYX9NUbKds&client_data=eyJydSI6Imh0dHBzOi8vc3AuZXhlbXBsZS5mci9hY3MiLCJydCI6Il9hMDc2NjE3OGM1NWI0NDYwYTBjNGE5NmQ1OGQyNTFjMCIsInJtIjoicG9zdCIsInN0IjoicmV0b3VyIn0&skip_logout=true"
+ // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1404468
+ Sign in to your account
+ aria-invalid=""/>
+--- émetteur inconnu
+ Sign in to lab 
+ // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1404468
+ We are sorry...
+ Invalid Request 
+HTTP 400
+
+{"type":"LOGIN_ERROR","error":"client_not_found","details":{}}
+--- ACS non enregistrée
+ Sign in to lab 
+ "/realms/lab/login-actions/restart?client_id=https%3A%2F%2Fsp.exemple.fr%2Fmetadata&skip_logout=true"
+ // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1404468
+ We are sorry...
+ Invalid redirect uri 
+
+{"type":"LOGIN_ERROR","error":"invalid_redirect_uri"}
+2026-10-15 19:23:42,915 WARN  [org.keycloak.events] (executor-thread-1) type="CODE_TO_TOKEN_ERROR", realmId="e585bea1-1f01-4fbb-a38e-909c8f2f5187", realmName="lab", clientId="boutique", userId="7be3ac14-6ec2-47cb-886a-02bd54b8912f", sessionId="GRhAsmC8aHAA2ZmN_P_hBdSM", ipAddress="172.17.0.1", error="invalid_redirect_uri", reason="Parameter 'redirect_uri' did not match originally saved redirect URI used in initial OIDC request. Saved redirectUri: http://localhost:3000/callback, redirectUri parameter: http://localhost:3000/autre", grant_type="authorization_code", code_id="GRhAsmC8aHAA2ZmN_P_hBdSM", client_auth_method="client-secret"
+--- métadonnées IdP
+<md:EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="http://localhost:8080/realms/lab"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo><ds:KeyName>-7mce_jal07Bms_1lC0GXqYl3_p1kbLmFfJlmjZSa5A</ds:KeyName><ds:X509Data><ds:X509Certificate>MIIClTCCAX0CBgGhQQRc9DANBgkqhkiG9w0BAQsFADAOMQwwCgYDVQQDDANsYWIwHhcNMjYxMDE1MTkyMT

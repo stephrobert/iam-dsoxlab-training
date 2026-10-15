@@ -1,0 +1,34 @@
+# Surcharges françaises du catalogue. Appariées PAR `id`, jamais par position :
+# réordonner `meta.yml` ne déplace donc pas les traductions.
+#
+# Seuls quatre champs sont lus ici : `repo.title`, `repo.description`,
+# `sections[].title` et `sections[].description`. Tout le reste est ignoré, et
+# vit dans `meta.yml`.
+#
+# L'anglais est la langue canonique du contrat, parce que c'est la langue par
+# défaut de dsoxlab. Le français vient ici, et c'est lui que l'apprenant lit.
+repo:
+  title: "Formation IAM : brancher une application sur un fournisseur d'identité, puis l'exploiter"
+  description: |
+    Les labs de la formation « Gestion des identités et des accès ». Le niveau 1
+    branche de vraies applications sur un vrai fournisseur d'identité : Keycloak
+    avec sa base de données, une application en OIDC avec PKCE, une API derrière
+    des jetons d'accès, un annuaire fédéré en LDAP, un service fédéré en SAML,
+    un fournisseur externe délégué, et une intégration cassée à diagnostiquer.
+    Le niveau 2 l'exploite : authentification forte, départ d'un collaborateur,
+    revue des accès, plateforme branchée, sauvegarde et montée de version, et
+    le realm décrit en tant que code.
+
+    Chaque lab est noté sur l'état du système, jamais sur les commandes tapées :
+    les tests interrogent Keycloak par son API d'administration et ses points
+    d'accès OIDC, l'annuaire en LDAP, et les applications témoins par leurs
+    propres réponses.
+
+sections:
+  - id: niveau-1
+    title: "Niveau 1 : brancher une application sur un fournisseur d'identité"
+    description: "Installer Keycloak avec sa base, brancher une application en OIDC avec PKCE, mettre une API derrière des jetons d'accès, fédérer un annuaire puis un service SAML, déléguer à un fournisseur externe, et diagnostiquer une intégration qui échoue. Se termine par l'épreuve de niveau."
+
+  - id: niveau-2
+    title: "Niveau 2 : exploiter et gouverner"
+    description: "Imposer une authentification forte, traiter le départ d'un collaborateur, conduire une revue des accès, brancher la plateforme, sauvegarder et mettre à jour le fournisseur, et décrire le realm en tant que code. Se termine par l'épreuve finale."

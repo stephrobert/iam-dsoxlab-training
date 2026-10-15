@@ -1,0 +1,52 @@
+=== API correcte
+HTTP/1.0 200 OK
+{"sub": "7be3ac14-6ec2-47cb-886a-02bd54b8912f", "notes": ["courses", "id\u00e9es"]}
+=== 2. issuer : jeton obtenu via 127.0.0.1
+{"iss":"http://127.0.0.1:8080/realms/lab","aud":["notes-api","account"]}
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Invalid issuer"}
+--- discovery
+http://127.0.0.1:8080/realms/lab
+http://127.0.0.1:8080/realms/lab/protocol/openid-connect/certs
+http://localhost:8080/realms/lab
+http://localhost:8080/realms/lab/protocol/openid-connect/certs
+--- API configurée sur https
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Fail to fetch data from the url, err: \"<urlopen error [SSL] record layer failure (_ssl.c:1010)>\""}
+--- API configurée sur autre realm (master)
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Unable to find a signing key that matches: \"-7mce_jal07Bms_1lC0GXqYl3_p1kbLmFfJlmjZSa5A\""}
+--- API configurée sur realm lab2 inexistant
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Fail to fetch data from the url, err: \"HTTP Error 404: Not Found\""}
+127.0.0.1 - - [15/Oct/2026 21:29:56] "GET /notes HTTP/1.1" 401 -
+=== 3. audience
+{"iss":"http://localhost:8080/realms/lab","aud":"account","scope":"profile email"}
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Audience doesn't match"}
+=== 4. horloge
+{"iat":1792092594,"exp":1792092894,"ttl":300}
+1792092596
+decalage 0 s :
+HTTP/1.0 200 OK
+{"sub": "7be3ac14-6ec2-47cb-886a-02bd54b8912f", "notes": ["courses", "id\u00e9es"]}
+decalage 120 s :
+HTTP/1.0 200 OK
+{"sub": "7be3ac14-6ec2-47cb-886a-02bd54b8912f", "notes": ["courses", "id\u00e9es"]}
+decalage 301 s :
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Signature has expired"}
+decalage -30 s :
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "The token is not yet valid (iat)"}
+decalage -600 s :
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "The token is not yet valid (iat)"}

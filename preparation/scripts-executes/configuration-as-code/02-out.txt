@@ -1,0 +1,161 @@
+Logging into http://localhost:8080 as user admin of realm master
+=== A. secret manquant (aucune variable) ===
+
+Error: No value for required variable
+
+  on variables.tf line 12:
+  12: variable "boutique_secret" {
+
+The root module input variable "boutique_secret" is not set, and has no
+default value. Use a -var or -var-file command line argument to provide a
+value for this variable.
+=== B. garde-fou master ===
+
+Planning failed. Terraform encountered an error while generating this plan.
+
+
+Error: Invalid value for variable
+
+  on variables.tf line 1:
+   1: variable "realm_name" {
+    ├────────────────
+    │ var.realm_name is "master"
+
+Refus : ce dossier ne doit jamais gérer le realm master.
+
+This was checked by the validation rule at variables.tf:6,3-13.
+code=1
+=== C. plan initial ===
+  # keycloak_group.equipe_boutique will be created
+      + name     = "equipe-boutique"
+      + realm_id = (known after apply)
+  # keycloak_group_roles.equipe_boutique will be created
+      + realm_id   = (known after apply)
+      + role_ids   = (known after apply)
+  # keycloak_openid_client.boutique will be created
+      + client_id                                 = "boutique"
+      + name                                      = "Boutique"
+      + realm_id                                  = (known after apply)
+  # keycloak_realm.formation will be created
+      + realm                                    = "formation"
+  # keycloak_role.editeur will be created
+      + name            = "editeur"
+      + realm_id        = (known after apply)
+  # keycloak_role.lecteur will be created
+      + name            = "lecteur"
+      + realm_id        = (known after apply)
+Plan: 6 to add, 0 to change, 0 to destroy.
+=== D. apply ===
+keycloak_role.editeur: Creating...
+keycloak_role.lecteur: Creating...
+keycloak_group.equipe_boutique: Creating...
+keycloak_openid_client.boutique: Creating...
+keycloak_group.equipe_boutique: Creation complete after 0s [id=645ce30e-a8c6-4f0e-a44e-c0b769580007]
+keycloak_role.editeur: Creation complete after 0s [id=75ad8dcf-2dfe-46f4-8d11-9784e5ee80a0]
+keycloak_role.lecteur: Creation complete after 0s [id=4ffaeca3-334f-4660-ae88-d98df6424fe6]
+keycloak_group_roles.equipe_boutique: Creating...
+keycloak_group_roles.equipe_boutique: Creation complete after 0s [id=formation/645ce30e-a8c6-4f0e-a44e-c0b769580007]
+keycloak_openid_client.boutique: Creation complete after 0s [id=07bc048c-18ab-466e-993b-4a4188a2ed56]
+
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+=== E. verif kcadm ===
+{
+  "realm" : "formation",
+  "displayName" : "Formation IAM",
+  "accessTokenLifespan" : 600
+}
+[ {
+  "name" : "default-roles-formation"
+}, {
+  "name" : "lecteur"
+}, {
+  "name" : "uma_authorization"
+}, {
+  "name" : "offline_access"
+}, {
+  "name" : "editeur"
+} ]
+[ {
+  "name" : "equipe-boutique"
+} ]
+[ {
+  "clientId" : "boutique",
+
+  "redirectUris" : [ "https://boutique.exemple.fr/callback" ],
+  "publicClient" : false
+} ]=== F. replan sans changement ===
+
+Terraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
+exit=0
+=== G. derive par kcadm ===
+Created new role with id 'intrus'
+=== H. detection ===
+keycloak_realm.formation: Refreshing state... [id=formation]
+keycloak_role.editeur: Refreshing state... [id=75ad8dcf-2dfe-46f4-8d11-9784e5ee80a0]
+keycloak_role.lecteur: Refreshing state... [id=4ffaeca3-334f-4660-ae88-d98df6424fe6]
+keycloak_group.equipe_boutique: Refreshing state... [id=645ce30e-a8c6-4f0e-a44e-c0b769580007]
+keycloak_openid_client.boutique: Refreshing state... [id=07bc048c-18ab-466e-993b-4a4188a2ed56]
+keycloak_group_roles.equipe_boutique: Refreshing state... [id=formation/645ce30e-a8c6-4f0e-a44e-c0b769580007]
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+Terraform will perform the following actions:
+  # keycloak_openid_client.boutique will be updated in-place
+  ~ resource "keycloak_openid_client" "boutique" {
+        id                                             = "07bc048c-18ab-466e-993b-4a4188a2ed56"
+        name                                           = "Boutique"
+      ~ valid_redirect_uris                            = [
+          - "*",
+          + "https://boutique.exemple.fr/callback",
+        ]
+        # (47 unchanged attributes hidden)
+    }
+  # keycloak_realm.formation will be updated in-place
+  ~ resource "keycloak_realm" "formation" {
+      ~ access_token_lifespan                    = "24h0m0s" -> "10m"
+        id                                       = "formation"
+        # (53 unchanged attributes hidden)
+        # (3 unchanged blocks hidden)
+    }
+Plan: 0 to add, 2 to change, 0 to destroy.
+─────────────────────────────────────────────────────────────────────────────
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+exit=2
+=== I. refresh-only ===
+Note: Objects have changed outside of Terraform
+  ~ resource "keycloak_group" "equipe_boutique" {
+      + attributes      = {}
+  ~ resource "keycloak_openid_client" "boutique" {
+      + extra_config                                   = {}
+      ~ valid_redirect_uris                            = [
+          - "https://boutique.exemple.fr/callback",
+          + "*",
+  ~ resource "keycloak_realm" "formation" {
+      ~ access_token_lifespan                    = "10m0s" -> "24h0m0s"
+=== J. correction ===
+keycloak_openid_client.boutique: Modifying... [id=07bc048c-18ab-466e-993b-4a4188a2ed56]
+keycloak_openid_client.boutique: Modifications complete after 0s [id=07bc048c-18ab-466e-993b-4a4188a2ed56]
+
+Apply complete! Resources: 0 added, 2 changed, 0 destroyed.
+{
+  "accessTokenLifespan" : 600
+}
+{
+  "redirectUris" : [ "https://boutique.exemple.fr/callback" ]
+}
+[ {
+  "name" : "default-roles-formation"
+}, {
+  "name" : "intrus"
+}, {
+  "name" : "lecteur"
+}, {
+  "name" : "uma_authorization"
+}, {
+  "name" : "offline_access"
+}, {
+  "name" : "editeur"
+} ]
+exit final=0

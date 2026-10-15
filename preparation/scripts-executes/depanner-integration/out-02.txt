@@ -1,0 +1,38 @@
+--- bon redirect_uri
+200
+--- mauvais redirect_uri (slash final)
+ // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1404468
+ We are sorry...
+ Invalid parameter: redirect_uri 
+HTTP 400
+--- mauvais port
+HTTP 400
+--- événements
+LOGIN_ERROR,invalid_redirect_uri,boutique
+LOGIN_ERROR,invalid_redirect_uri,boutique
+[ {
+  "id" : "824a4269-e33a-4dc8-94b8-736dbf9fe52c",
+  "time" : 1792092187765,
+  "type" : "LOGIN_ERROR",
+  "realmId" : "e585bea1-1f01-4fbb-a38e-909c8f2f5187",
+  "clientId" : "boutique",
+  "ipAddress" : "172.17.0.1",
+  "error" : "invalid_redirect_uri",
+  "details" : {
+    "redirect_uri" : "http://localhost:3001/callback"
+  }
+}, {
+  "id" : "6939cf9d-a794-4459-a210-44fae32250f1",
+  "time" : 1792092187734,
+  "type" : "LOGIN_ERROR",
+  "realmId" : "e585bea1-1f01-4fbb-a38e-909c8f2f5187",
+  "clientId" : "boutique",
+  "ipAddress" : "172.17.0.1",
+  "error" : "invalid_redirect_uri",
+  "details" : {
+    "redirect_uri" : "http://localhost:3000/callback/"
+  }
+} ]
+--- journal
+2026-10-15 19:23:07,736 WARN  [org.keycloak.events] (executor-thread-1) type="LOGIN_ERROR", realmId="e585bea1-1f01-4fbb-a38e-909c8f2f5187", realmName="lab", clientId="boutique", userId="null", ipAddress="172.17.0.1", error="invalid_redirect_uri", redirect_uri="http://localhost:3000/callback/"
+2026-10-15 19:23:07,767 WARN  [org.keycloak.events] (executor-thread-1) type="LOGIN_ERROR", realmId="e585bea1-1f01-4fbb-a38e-909c8f2f5187", realmName="lab", clientId="boutique", userId="null", ipAddress="172.17.0.1", error="invalid_redirect_uri", redirect_uri="http://localhost:3001/callback"

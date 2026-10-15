@@ -1,0 +1,50 @@
+--- codes HTTP du token endpoint
+secret faux: 401
+client inconnu: 401
+--- /auth client inconnu
+ // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1404468
+ We are sorry...
+ Client not found. 
+HTTP 400
+
+{"clientId":"inconnu","error":"client_not_found"}
+--- en-tête Date de Keycloak
+jeu. 15 oct. 2026 19:30:42 UTC
+--- tolérance (leeway) avec horloge -30 s
+leeway 0 : The token is not yet valid (iat)
+leeway 60 : accepté
+--- recherche d'événements filtrée
+
+      8 {"error":"invalid_client_credentials"}
+      1 {"error":"invalid_code"}
+      1 {"error":"invalid_redirect_uri"}
+Usage: kcadm.sh get ENDPOINT_URI [ARGUMENTS]
+
+Command to retrieve existing resources from the server.
+
+Use 'kcadm.sh config credentials' to establish an authenticated session, or use CREDENTIALS OPTIONS
+to perform one time authentication.
+
+Arguments:
+
+  Global options:
+    -x                    Print full stack trace when exiting with error
+    --config              Path to the config file (/opt/keycloak/.keycloak/kcadm.config by default)
+    --no-config           Don't use config file - no authentication info is loaded or saved
+    --token               Token to use to invoke on Keycloak.  Other credential may be ignored if this flag is set.
+    --truststore PATH     Path to a truststore containing trusted certificates
+    --trustpass PASSWORD  Truststore password (prompted for if not specified, --truststore is used, and the KC_CLI_TRUSTSTORE_PASSWORD env property is not defined)
+    CREDENTIALS OPTIONS   Same set of options as accepted by 'kcadm.sh config credentials' in order to establish
+                          an authenticated sessions. In combination with --no-config option this allows transient
+                          (on-the-fly) authentication to be performed which leaves no tokens in config file.
+
+    ENDPOINT_URI              URI used to compose a target resource url. Commonly used values are:
+                              realms, users, roles, groups, clients, keys, serverinfo, components ...
+                              If it starts with 'http://' then it will be used as target resource url
+    -r, --target-realm REALM  Target realm to issue requests against if not the one authenticated against
+    -q, --query NAME=VALUE    Add to request URI a NAME query parameter with value VALUE, for example --query q=username:admin
+    -h, --header NAME=VALUE   Set request header NAME to VALUE
+    -o, --offset OFFSET       Set paging offset - adds a query parameter 'first' which some endpoints recognize
+    -l, --limit LIMIT         Set limit to number of items in result - adds a query parameter 'max' 
+                              which some endpoints recognize
+

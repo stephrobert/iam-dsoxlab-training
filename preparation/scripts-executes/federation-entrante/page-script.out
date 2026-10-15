@@ -1,0 +1,78 @@
+### BLOC 1 : démarrage
+3c3bcf825ea81d089a375ab787cd905f70bf9c6b6bcaaca0bb61f7d7ad3c60f4
+8c92f443f34064349d32103adbaf23d38aa8eb0a23e0d29f095f9712e826ed0e
+### BLOC 2 : partenaire
+Logging into http://localhost:8082 as user admin of realm master
+Created new realm with id 'partenaire'
+Created new user with id 'e5e8632b-7fe4-452c-b652-fba8cc13640f'
+
+### BLOC 3 : realm lab
+Logging into http://localhost:8080 as user admin of realm master
+Created new realm with id 'lab'
+Created new group with id '7a049dc5-59a3-45e7-8515-6daf4a9c67b0'
+Created new client with id '70afd6e3-975f-49be-b931-4f57276fef02'
+Created new user with id '2de9e5c7-eb03-4865-9911-b9fe45d0e896'
+### BLOC 4 : IdP
+Created new instance with id 'partenaire'
+
+{
+  "alias": "partenaire",
+  "providerId": "oidc",
+  "enabled": true,
+  "trustEmail": false,
+  "firstBrokerLoginFlowAlias": "first broker login",
+  "config": {
+    "validateSignature": "true",
+    "tokenUrl": "http://localhost:8082/realms/partenaire/protocol/openid-connect/token",
+    "clientId": "portail-entreprise",
+    "jwksUrl": "http://localhost:8082/realms/partenaire/protocol/openid-connect/certs",
+    "authorizationUrl": "http://localhost:8082/realms/partenaire/protocol/openid-connect/auth",
+    "clientAuthMethod": "client_secret_post",
+    "syncMode": "IMPORT",
+    "issuer": "http://localhost:8082/realms/partenaire",
+    "defaultScope": "openid email profile",
+    "useJwksUrl": "true"
+  }
+}
+### BLOC 5 : mappers
+Created new mapper with id '41093c60-44ec-4d8b-8a42-6ed395398538'
+Created new mapper with id '3519ff01-85eb-4fc3-8780-5d9953879a81'
+Created new mapper with id '54dfbfa5-f23f-4cbc-a01e-9bc2358f97b6'
+Created new mapper with id '0bc2b13b-a7f0-453a-8043-638feb6a7384'
+
+{"name":"groupe-partenaires","identityProviderMapper":"oidc-hardcoded-group-idp-mapper","config":{"syncMode":"INHERIT","group":"/partenaires"}}
+{"name":"given_name","identityProviderMapper":"oidc-user-attribute-idp-mapper","config":{"syncMode":"INHERIT","claim":"given_name","user.attribute":"firstName"}}
+{"name":"email","identityProviderMapper":"oidc-user-attribute-idp-mapper","config":{"syncMode":"INHERIT","claim":"email","user.attribute":"email"}}
+{"name":"family_name","identityProviderMapper":"oidc-user-attribute-idp-mapper","config":{"syncMode":"INHERIT","claim":"family_name","user.attribute":"lastName"}}
+### BLOC 6 : parcours du premier login (curl + cookies)
+URL finale : http://localhost:9999/cb?session_state=...&iss=http%3A%2F%2Flocalhost%3A8080%2Frealms%2Flab&code=...
+### BLOC 7 : vérification du compte importé
+
+{"username":"bruno","email":"bruno.leroy@partenaire.fr","emailVerified":false,"firstName":"Bruno","lastName":"Leroy"}
+
+{"identityProvider":"partenaire","userName":"bruno"}
+
+"/partenaires"
+
+["offline_access","uma_authorization","default-roles-lab"]
+
+{}
+### BLOC 8 : e-mail déjà connu (carole)
+Created new user with id '4c3e299f-2660-4db3-95fb-da5859c062aa'
+kc-feedback-text">User with email alice@exemple.fr already exists. How do you want to continue?
+bouton "updateProfile"
+bouton "linkAccount"
+
+[ ]### BLOC 9 : contre-exemple, lien automatique
+Created new flow with id '513dc0fa-1d27-4215-8709-1cf44eb3ba06'
+Created new execution with id '9f249e73-09cf-446d-9811-ddedc476c911'
+Created new execution with id '8083c497-aa5a-4487-b31e-6fb929be2678'
+
+URL finale : http://localhost:9999/cb?session_state=...&iss=http%3A%2F%2Flocalhost%3A8080%2Frealms%2Flab&code=...
+{"iss":"http://localhost:8080/realms/lab","preferred_username":"alice","email":"alice@exemple.fr","email_verified":false}
+
+{"identityProvider":"partenaire","userName":"carole"}
+### BLOC 10 : retour au flux par défaut
+
+{"firstBrokerLoginFlowAlias":"first broker login"}
+### BLOC 11 : nettoyage

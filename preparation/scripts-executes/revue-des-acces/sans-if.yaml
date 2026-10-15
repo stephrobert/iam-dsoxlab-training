@@ -1,0 +1,19 @@
+name: comptes-inactifs
+on: user-authenticated
+schedule:
+  after: 5s
+  batch-size: 50
+concurrency:
+  restart-in-progress: true
+steps:
+  - uses: notify-user
+    after: 20s
+    with:
+      subject: Votre compte sera désactivé
+      message: |
+        <p>Bonjour ${user.firstName}, votre compte sera désactivé sous peu faute de connexion.</p>
+  - uses: disable-user
+    after: 20s
+  - uses: join-group
+    with:
+      group: /desactives

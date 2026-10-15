@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/meta.schema.json",
+  "title": "dsoxlab meta.yml (contract v1)",
+  "description": "Declarative contract of a lab-hosting repository, read by dsoxlab from <repo>/meta.yml. Contract version 1. Point your editor at this schema with a first line: # yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/meta.schema.json",
+  "type": "object",
+  "required": ["repo"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1,
+      "default": 1,
+      "description": "Version of the INPUT contract this file follows. Leave it out and it is read as 1. Unrelated to the version of the JSON dsoxlab emits (reporting/machine.py: SCHEMA)."
+    },
+
+    "repo": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "description": "Identity of the repository. The only block dsoxlab requires.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Slug of the repository. Namespaces the state directory and the service containers."
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Technical category of the repository. Becomes the default section of every lab. Free-form: dsoxlab knows no list of domains. Optional since 0.1.88, because a repository that only provisions infrastructure has no lab to place; validate-structure asks for it as soon as labs exist."
+        },
+        "title": { "type": "string", "description": "Human-readable name." },
+        "blog_url": { "type": "string", "description": "Home page of the online course." },
+        "description": { "type": "string", "description": "One paragraph about the repository." },
+        "issues_url": { "type": "string", "description": "Where to file an issue about THIS catalogue rather than about the engine. Read by `dsoxlab support --issue`. Optional: without it the tool falls back to the repository's `origin` remote." }
+      }
+    },
+
+    "learning": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where this catalogue expects a proof of practice to be handed in. Optional, and a catalogue without it keeps working: dsoxlab then shows no link and invents no address. Nothing else belongs here \u2014 no token, API key, authorization header, webhook or command: a versioned repository is no place for a secret, and a catalogue gives the engine no orders.",
+      "properties": {
+        "portal_url": {
+          "type": "string",
+          "description": "Hand-in URL, in https. It does NOT mean dsoxlab sends anything (it never does), nor that the portal is reachable from the machine running dsoxlab, nor that it is approved by anyone: it is declared by this catalogue, and the CLI says so. http is refused, except towards localhost with DSOXLAB_PORTAL_LOCAL set \u2014 a decision of the machine playing the lab, never of the catalogue."
+        }
+      }
+    },
+
+    "infra": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Infrastructure topology. Optional, and needed only by labs declaring runtime: vm. A repository whose labs are all shell has no infra block at all.",
+      "properties": {
+        "provider": {
+          "description": "Infrastructure provider, or the list of candidates the learner may choose from. Providers packaged with dsoxlab: kvm, incus, outscale. Resolution order: DSOXLAB_PROVIDER, then the session context set by dsoxlab use --provider, then a bare string or a single-item list. Left unresolved is not an error: only infrastructure commands require one.",
+          "default": "kvm",
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+          ]
+        },
+        "bootstrap": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Playbook of the CATALOGUE's foundation, played once at the end of `provision`, before any lab. Path relative to the repository root. Optional: for a catalogue whose labs share an expensive base (a kubeadm cluster, a populated database, a directory), it replaces the include that every setup.yaml had to carry. It is played on the hosts of the generated inventory, so it targets `all` or `labenv`; it must be replayable without harm, and it is replayed when its content changes."
+        },
+        "network": {
+          "type": "string",
+          "description": "Name of the network the VMs join, dedicated to this repository so several catalogs can coexist."
+        },
+        "cidr": {
+          "type": "string",
+          "description": "Subnet of that network, in CIDR notation."
+        },
+        "hosts": {
+          "type": "array",
+          "description": "The VMs of the repository. Every runtime.targets[].host and every roles value of a lab must appear here by name.",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "FQDN of the machine, the name labs refer to."
+              },
+              "distro": {
+                "type": "string",
+                "description": "Image and cloud-init to use. Values packaged with dsoxlab today: alma10, alma9, ubuntu26, ubuntu24, ubuntu22, debian13, debian12. Not enumerated here, because the list lives in the Terraform templates and grows with them."
+              },
+              "role": {
+                "type": "string",
+                "description": "Free-form role, exposed as an Ansible host_var."
+              },
+              "ram_mb": { "type": "integer", "minimum": 1, "default": 1024 },
+              "vcpu": { "type": "integer", "minimum": 1, "default": 1 },
+              "disk_gb": { "type": "integer", "minimum": 1, "default": 10 },
+              "extra_disk_gb": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 0,
+                "description": "Size of a second disk attached to the VM, for labs that need a real block device (partitioning, LVM, RAID). 0 = none."
+              },
+              "ip": {
+                "type": "string",
+                "deprecated": true,
+                "description": "Legacy. Addresses come from the provider (Terraform output) and are injected into the generated inventory. Do not declare them."
+              }
+            }
+          }
+        },
+        "providers": {
+          "type": "object",
+          "description": "Per-provider overrides, read by the matching Terraform module. Keys are provider names; values are free-form mappings, because each provider has its own variables. The keys described below are the ones the packaged templates read; any other key is passed through untouched.",
+          "additionalProperties": {
+            "type": ["object", "null"],
+            "properties": {
+              "storage_pool": {
+                "type": "string",
+                "minLength": 1,
+                "default": "default",
+                "description": "kvm only. libvirt storage pool the volumes are created in. Defaults to `default`, which a fresh install does not always declare: `virsh pool-list --all` is empty on a stock Ubuntu, and provisioning stops on a raw \"Pool Not Found\". Point this at a pool you own rather than editing the packaged template."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "sections": {
+      "type": "array",
+      "description": "Teaching order of the catalog. Optional. It orders and names the blocs; it never decides whether a lab exists, which is settled by the presence of labs/**/lab.yaml.",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Slug of the section." },
+          "title": { "type": "string", "description": "Human-readable name, shown as the bloc name." },
+          "description": { "type": "string", "description": "One short line." },
+          "labs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Paths relative to <repo>/labs/, in teaching order. The match is on the path, never on the lab id."
+          }
+        }
+      }
+    }
+  }
+}

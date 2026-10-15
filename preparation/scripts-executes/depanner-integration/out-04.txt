@@ -1,0 +1,30 @@
+--- client_id inconnu
+{"error":"invalid_client","error_description":"Invalid client or Invalid client credentials"}
+
+{"type":"LOGIN_ERROR","clientId":"inconnu","error":"client_not_found","details":{}}
+--- client public + secret (password grant)
+{"expires_in":300,"refresh_expires_in":1800,"token_type":"Bearer","not-before-policy":0,"session_state":"Lj4XvtXwcSv3CtedqZ3g9Xgg","scope":"profile email"}
+--- client public, client_credentials
+{"error":"unauthorized_client","error_description":"Public client not allowed to retrieve service account"}
+
+{"type":"CLIENT_LOGIN_ERROR","clientId":"notes-cli","error":"invalid_client","details":{}}
+--- confidentiel sans service account, client_credentials, bon secret
+{"error":"unauthorized_client","error_description":"Client not enabled to retrieve service account"}
+
+{"type":"CLIENT_LOGIN_ERROR","clientId":"boutique","error":"invalid_client","details":{}}
+--- confidentiel, client_credentials, mauvais secret (service account activé)
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+
+{"type":"CLIENT_LOGIN_ERROR","clientId":"boutique","error":"invalid_client_credentials","details":{}}
+--- Basic auth faux secret
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+--- password grant, confidentiel, sans secret
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+--- password grant désactivé
+{"error":"unauthorized_client","error_description":"Client not allowed for direct access grants"}
+
+{"type":"LOGIN_ERROR","clientId":"boutique","error":"not_allowed","details":{}}
+--- mauvais mot de passe user
+{"error":"invalid_grant","error_description":"Invalid user credentials"}
+
+{"type":"LOGIN_ERROR","clientId":"notes-cli","error":"invalid_user_credentials","details":{}}

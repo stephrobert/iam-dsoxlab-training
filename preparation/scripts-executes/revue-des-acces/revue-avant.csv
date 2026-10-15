@@ -1,0 +1,4 @@
+compte,actif,groupes,roles_via_groupes,roles_directs
+"claire.dubois",false,"desactives dev","acces-dev","acces-prod"
+"marc.leroy",false,"compta desactives","lecture-compta",""
+"sophie.martin",true,"compta","lecture-compta","acces-prod"

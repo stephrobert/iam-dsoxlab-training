@@ -1,0 +1,13 @@
+---
+# Joué par `dsoxlab clean` : défait ce que le lab a créé. Tout vit dans le
+# namespace lab, le supprimer suffit. Le cluster reste.
+- name: Nettoyer le lab ckad-expose-service
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Supprimer le namespace de travail
+      ansible.builtin.command: >-
+        kubectl --kubeconfig /etc/kubernetes/admin.conf delete namespace lab
+        --ignore-not-found --wait=false
+      changed_when: true
+      failed_when: false

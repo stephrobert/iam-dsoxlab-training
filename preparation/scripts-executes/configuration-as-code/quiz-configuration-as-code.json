@@ -1,0 +1,112 @@
+{
+  "keycloak-configuration-as-code": [
+    {
+      "type": "qcm",
+      "intitule": "Que fait une ressource KeycloakRealmImport lorsque le realm décrit existe déjà dans Keycloak ?",
+      "choix": [
+        "Elle le laisse tel quel : il n'est ni écrasé ni mis à jour",
+        "Elle fusionne les valeurs du manifeste dans le realm déjà présent",
+        "Elle supprime le realm existant puis le recrée depuis le manifeste",
+        "Elle crée un second realm du même nom, avec un suffixe numérique"
+      ],
+      "reponse": "Elle le laisse tel quel : il n'est ni écrasé ni mis à jour",
+      "explication": "Le **KeycloakRealmImport** ne sait que **créer** : la documentation de l'Operator précise qu'un realm du même nom n'est pas écrasé et que la ressource ne met jamais à jour un realm existant. D'où le besoin d'un outil de **réconciliation** comme le provider Terraform pour une configuration en tant que code.",
+      "section": "Pourquoi décrire un realm dans des fichiers ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    },
+    {
+      "type": "qcm",
+      "intitule": "Quelle raison justifie le choix du provider Terraform keycloak/keycloak 5.10.0 plutôt que keycloak-config-cli dans cette leçon ?",
+      "choix": [
+        "Il n'a pas de state à protéger, contrairement à l'outil keycloak-config-cli",
+        "keycloak-config-cli est archivé et n'est plus publié depuis 2025",
+        "Il est le seul outil capable de lire le format JSON d'un export de realm",
+        "Son plan montre l'écart avant d'écrire et sa CI teste Keycloak 26.7"
+      ],
+      "reponse": "Son plan montre l'écart avant d'écrire et sa CI teste Keycloak 26.7",
+      "explication": "Le provider offre un **terraform plan** qui rend la dérive visible avant d'écrire, et son README liste Keycloak **26.7.5** et **26.8.0** dans sa CI. Les deux outils sont maintenus, et le provider a bien un **state**, qui contient les secrets.",
+      "section": "Terraform ou keycloak-config-cli : quel outil choisir ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    },
+    {
+      "type": "qcm",
+      "intitule": "Malgré sensitive = true sur la variable du secret, pourquoi le fichier terraform.tfstate doit-il rester hors du dépôt ?",
+      "choix": [
+        "Parce que sensitive ne chiffre rien : le state garde le secret en clair",
+        "Parce que sensitive n'a d'effet que sur les variables de type nombre",
+        "Parce que le state est reconstruit à chaque plan et ne sert qu'au cache local",
+        "Parce que Keycloak refuse un secret déjà présent dans un fichier versionné"
+      ],
+      "reponse": "Parce que sensitive ne chiffre rien : le state garde le secret en clair",
+      "explication": "**sensitive** masque la valeur dans les plans et les sorties, mais le **terraform.tfstate** garde la valeur en clair : un grep de la valeur y rend 1. Le state se traite comme un fichier secret, jamais versionné, idéalement dans un **backend chiffré**.",
+      "section": "Comment garder le secret du client hors des fichiers ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    },
+    {
+      "type": "qcm",
+      "intitule": "Qu'est-ce qui refuse la commande terraform plan -var realm_name=master dans cette leçon ?",
+      "choix": [
+        "Keycloak, dont l'API renvoie un code 403 dès qu'on vise master",
+        "Le provider, qui exclut le realm master de ses ressources par construction",
+        "Le fichier de verrouillage .terraform.lock.hcl du dossier, qui liste les realms autorisés",
+        "Un bloc validation sur la variable realm_name, évalué avant tout appel à l'API"
+      ],
+      "reponse": "Un bloc validation sur la variable realm_name, évalué avant tout appel à l'API",
+      "explication": "Le bloc **validation** de la variable rejette la valeur **master** avec le message d'erreur choisi. C'est un garde-fou de saisie, qui n'empêche pas d'écrire le realm en dur ; pour l'interdire vraiment, il faut un **compte de service** limité au realm.",
+      "section": "Comment empêcher d'appliquer sur le realm master ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    },
+    {
+      "type": "qcm",
+      "intitule": "Un administrateur crée à la main un rôle intrus dans le realm formation. Que montre le plan suivant ?",
+      "choix": [
+        "Rien : Terraform ne gère que les objets déclarés dans les fichiers",
+        "Le rôle, marqué à détruire puisqu'il n'est pas décrit dans les fichiers",
+        "Une erreur qui bloque le plan tant que le rôle n'a pas été supprimé",
+        "Un changement du realm entier, à réappliquer pour supprimer l'intrus"
+      ],
+      "reponse": "Rien : Terraform ne gère que les objets déclarés dans les fichiers",
+      "explication": "Le plan compare les ressources **déclarées** à leur état réel : un objet ajouté à la main reste **invisible** tant qu'on ne le décrit pas. Le rôle intrus était encore présent après la réapplication, qui n'avait corrigé que le client et le realm.",
+      "section": "Comment détecter et corriger une dérive ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    },
+    {
+      "type": "qcm",
+      "intitule": "Comment passer les options de kcadm.sh create realms/formation/partial-export pour obtenir clients, rôles et groupes ?",
+      "choix": [
+        "Avec -s exportClients=true, comme les champs d'une création",
+        "En paramètres de requête : -q exportClients=true -q exportGroupsAndRoles=true",
+        "Avec --all, qui exporte tout le realm sans autre option",
+        "Dans un fichier de configuration lu avec --config au démarrage de kcadm.sh"
+      ],
+      "reponse": "En paramètres de requête : -q exportClients=true -q exportGroupsAndRoles=true",
+      "explication": "Les options de **partial-export** sont des paramètres de requête, donc **-q**. Avec **-s**, le JSON obtenu ne contient ni rôles, ni groupes, ni clients. Les secrets des clients y sont de toute façon masqués par dix étoiles.",
+      "section": "Comment démarrer depuis un realm déjà réglé à la main ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    },
+    {
+      "type": "vf",
+      "intitule": "Pour générer la configuration d'un objet existant avec terraform plan -generate-config-out, dans un dossier sans autre ressource, le bloc import doit porter provider = keycloak, qu'on retire ensuite du fichier.",
+      "reponse": "Vrai",
+      "explication": "Sans **provider = keycloak**, Terraform cherche le provider hashicorp/keycloak et échoue. Une fois le code généré, la ligne doit être **retirée** : Terraform répond que l'argument provider n'est permis que dans les blocs qui génèrent de la configuration.",
+      "section": "Comment démarrer depuis un realm déjà réglé à la main ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    },
+    {
+      "type": "vf",
+      "intitule": "L'export partiel d'un realm fournit le secret de chaque client en clair, ce qui permet de le reprendre tel quel dans Terraform.",
+      "reponse": "Faux",
+      "explication": "L'export **masque les secrets** : le champ secret d'un client contient dix étoiles. Il faut fournir le secret autrement, par une **variable sensible** alimentée depuis l'environnement, et le générateur de configuration laisse lui aussi client_secret à null.",
+      "section": "Comment démarrer depuis un realm déjà réglé à la main ?",
+      "url": "/docs/services/identite/keycloak/configuration-as-code/",
+      "level": "intermediaire"
+    }
+  ]
+}

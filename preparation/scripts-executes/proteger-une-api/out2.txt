@@ -1,0 +1,85 @@
+##### blocs/01-keycloak.sh
+54b5758bbbb9125d1afcc2378db2fe30c6814695ed158702af9e98cdae145bd3
+Logging into http://localhost:8080 as user admin of realm master
+Created new realm with id 'lab'
+Created new user with id 'cc4e022a-fc9d-4c01-9e1a-d72eb8aa7574'
+##### blocs/02-api-scopes.sh
+Created new client with id '6220f3e9-2ddf-49d0-bd7b-f43399778192'
+Created new model with id 'e4d4916b-603a-4c4d-ae3c-232ebdd622ad'
+Created new model with id '3a6e3ae6-9c5b-4a59-9506-b5294cbd302b'
+##### blocs/03-helpers.sh
+{"iss":"http://localhost:8080/realms/lab","aud":"account","azp":"notes-cli","scope":"profile email"}
+{"iss":"http://localhost:8080/realms/lab","aud":["notes-api","account"],"azp":"notes-cli","scope":"notes:lecture profile email"}
+##### blocs/04-api-run.sh
+
+[notice] A new release of pip is available: 25.0.1 -> 26.2.1
+[notice] To update, run: python3 -m pip install --upgrade pip
+##### blocs/05-refus.sh
+127.0.0.1 - - [15/Oct/2026 20:41:08] "GET /notes HTTP/1.1" 401 -
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer
+{"erreur": "jeton absent"}
+127.0.0.1 - - [15/Oct/2026 20:41:08] "GET /notes HTTP/1.1" 401 -
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Audience doesn't match"}
+127.0.0.1 - - [15/Oct/2026 20:41:08] "GET /notes HTTP/1.1" 200 -
+HTTP/1.0 200 OK
+{"sub": "cc4e022a-fc9d-4c01-9e1a-d72eb8aa7574", "notes": ["courses", "id\u00e9es"]}
+127.0.0.1 - - [15/Oct/2026 20:41:08] "POST /notes HTTP/1.1" 403 -
+HTTP/1.0 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope", scope="notes:ecriture"
+{"erreur": "scope manquant"}
+127.0.0.1 - - [15/Oct/2026 20:41:08] "POST /notes HTTP/1.1" 200 -
+HTTP/1.0 200 OK
+{"sub": "cc4e022a-fc9d-4c01-9e1a-d72eb8aa7574", "notes": ["courses", "id\u00e9es"]}
+127.0.0.1 - - [15/Oct/2026 20:41:08] "GET /notes HTTP/1.1" 401 -
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token"
+{"erreur": "Invalid crypto padding"}
+##### blocs/06-service.sh
+
+-rw------- 1 bob bob 86 oct.  15 20:41 secret-sauvegarde.txt
+{
+  "expires_in": 300,
+  "refresh_expires_in": 0,
+  "token_type": "Bearer",
+  "not-before-policy": 0,
+  "scope": "notes:lecture profile email"
+}
+{"aud":["notes-api","account"],"azp":"sauvegarde","scope":"notes:lecture profile email","preferred_username":"service-account-sauvegarde","ttl":300}
+127.0.0.1 - - [15/Oct/2026 20:41:11] "GET /notes HTTP/1.1" 200 -
+HTTP/1.0 200 OK
+{"sub": "43e4b78b-68d1-41e1-a08c-0f15591c5206", "notes": ["courses", "id\u00e9es"]}
+127.0.0.1 - - [15/Oct/2026 20:41:11] "POST /notes HTTP/1.1" 403 -
+HTTP/1.0 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope", scope="notes:ecriture"
+{"erreur": "scope manquant"}
+##### blocs/07-introspection.sh
+
+{"active":true,"aud":["notes-api","account"],"scope":"notes:lecture profile email","client_id":"notes-cli"}
+{"active":false}
+##### blocs/08-device.sh
+{
+  "device_code": "b2fTHlenzk3LR9w-rRzpAWinJJN5wRkQ19_Nb1ktMJQ",
+  "user_code": "GJSI-HMRJ",
+  "verification_uri": "http://localhost:8080/realms/lab/device",
+  "verification_uri_complete": "http://localhost:8080/realms/lab/device?user_code=GJSI-HMRJ",
+  "expires_in": 600,
+  "interval": 5
+}
+{"error":"authorization_pending","error_description":"The authorization request is still pending"}
+##### blocs/09-exchange.sh
+
+{"aud":"account","azp":"passerelle","scope":"profile email"}
+{"expires_in":300,"refresh_expires_in":0,"token_type":"Bearer","not-before-policy":0,"session_state":"X2LF0KALQUo09yEPgCCcFtNp","scope":"notes:lecture profile email","issued_token_type":"urn:ietf:params:oauth:token-type:access_token"}
+{"aud":"notes-api","azp":"passerelle","scope":"notes:lecture profile email","sub":"cc4e022a-fc9d-4c01-9e1a-d72eb8aa7574","preferred_username":"alice"}
+127.0.0.1 - - [15/Oct/2026 20:41:16] "GET /notes HTTP/1.1" 200 -
+HTTP/1.0 200 OK
+{"sub": "cc4e022a-fc9d-4c01-9e1a-d72eb8aa7574", "notes": ["courses", "id\u00e9es"]}
+{"error":"invalid_request","error_description":"Requested audience not available: notes-api"}
+signature seule : acceptée, aud = account
+#### grep secret
+secret absent des autres fichiers
+#### cleanup
+keycloak

@@ -1,0 +1,24 @@
+--- codes HTTP
+200  https://sp.exemple.fr/metadata https://sp.exemple.fr/acs
+400  https://autre.exemple.fr/metadata https://sp.exemple.fr/acs
+400  https://sp.exemple.fr/metadata https://sp.exemple.fr/autre-acs
+--- événements bruts
+
+{"time":1792092628169,"error":"invalid_redirect_uri"}
+{"time":1792092628134,"error":"client_not_found","details":{}}
+--- journal
+2026-10-15 19:30:28,135 WARN  [org.keycloak.events] (executor-thread-1) type="LOGIN_ERROR", realmName="lab", clientId="null", userId="null", ipAddress="172.17.0.1", error="client_not_found", reason="Cannot_match_source_hash"
+2026-10-15 19:30:28,170 WARN  [org.keycloak.events] (executor-thread-1) type="LOGIN_ERROR", realmName="lab", clientId="null", userId="null", ipAddress="172.17.0.1", error="invalid_redirect_uri"
+--- connexion SAML complète
+<form name="saml-post-binding" method="post" action="https://sp.exemple.fr/acs">
+name="SAMLResponse"
+Destination ['https://sp.exemple.fr/acs']
+InResponseTo ['_4027251e80e4467fa14ee004fc06d4ec', '_4027251e80e4467fa14ee004fc06d4ec']
+Issuer ['http://localhost:8080/realms/lab', 'http://localhost:8080/realms/lab']
+StatusCode ['urn:oasis:names:tc:SAML:2.0:status:Success']
+Audience ['https://sp.exemple.fr/metadata']
+NotBefore ['2026-10-15T19:30:27.269Z']
+NotOnOrAfter ['2026-10-15T19:35:27.269Z', '2026-10-15T19:31:27.269Z', '2026-10-16T05:30:29.272Z']
+Recipient ['https://sp.exemple.fr/acs']
+NameID ['alice']
+Signature ['<dsig:Signature', '<dsig:Signature', '<dsig:Signature']

@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/meta.schema.json
+#
+# Catalogue devsecops-dsoxlab-training, décrit par le contrat v1 de dsoxlab.
+#
+# Le capstone de la formation DevSecOps du blog, écrit comme un FIL ROUGE :
+# un seul projet, notes-api, qui gagne une version par module, de V0 (un
+# pipeline minimal) à V11 (des métriques DORA). Le point de départ d'un lab
+# est la solution du précédent : l'ordre ci-dessous est celui du jeu, et il ne
+# se réordonne pas.
+#
+# Plan complet : curriculums.yml, une version par module de la formation.
+#
+# tests/test_meta_declare_les_labs.py refuse un lab sur disque absent d'ici,
+# et un lab déclaré ici absent du disque : un lab entre dans cette liste le
+# jour où il est écrit, pas avant.
+schema_version: 1
+
+repo:
+  id: devsecops-dsoxlab-training
+  category: devsecops
+  title: "DevSecOps Training: the common thread, from V0 to V11"
+  blog_url: "https://blog.stephane-robert.info/docs/devops/"
+  issues_url: "https://github.com/stephrobert/devsecops-dsoxlab-training/issues"
+  description: |
+    One project, notes-api, hardened version after version as the DevSecOps
+    course goes on: a minimal pipeline, a threat model, blocking secret
+    scanning and SAST, dependency triage, no static secrets, a hardened
+    pipeline, a hardened image, a signed artifact with its SBOM, an admission
+    that refuses what is unsigned, runtime detection, dated exceptions, and
+    the project's own delivery metrics. Each version is graded on the state
+    of the repository, never on the commands typed.
+
+# Presque tout le fil rouge se joue sur le poste, avec act, Docker et kind.
+# Une seule version demande une vraie machine : V9b, la détection à
+# l'exécution avec Falco, dont la sonde eBPF lit les appels système du noyau.
+# Un cluster kind partage le noyau de l'hôte et ne prouverait rien de plus.
+infra:
+  # Provider choisi par l'apprenant : dsoxlab use --provider kvm (ou incus).
+  provider:
+    - kvm
+    - incus
+  # 10.10.20 Ansible, 10.10.30 Linux, 10.10.40 validation des guides,
+  # 10.10.50 Kubernetes : 10.10.60 reste libre.
+  network: lab-devsecops
+  cidr: 10.10.60.0/24
+  # L'IP et la MAC dérivent de la POSITION dans cette liste : tout nouvel hôte
+  # s'ajoute EN FIN DE LISTE.
+  hosts:
+    - name: falco-1.lab
+      distro: ubuntu24
+      role: runtime
+      ram_mb: 4096
+      vcpu: 2
+      disk_gb: 20
+
+sections:
+  - id: capstone
+    title: "The common thread: notes-api from V0 to V11"
+    description: "Evolve a single service from a minimal pipeline to a signed, admitted, monitored and measured delivery chain, one version per module of the DevSecOps course."
+    labs:
+      - capstone/v00-pipeline-minimal
+      - capstone/v01-modele-de-menace
+      - capstone/v02-secrets-et-sast
+      - capstone/v03-sca-et-triage
+      - capstone/v04-identite-sans-secret
+      - capstone/v05-pipeline-durci
+      - capstone/v06-image-et-iac
+      - capstone/v07-sbom-et-provenance
+      - capstone/v08-admission-signee
+      - capstone/v09-runtime-cloisonne
+      - capstone/v09b-detection-falco
+      - capstone/v10-vex-et-exceptions
+      - capstone/v11-slo-et-dora

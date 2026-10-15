@@ -1,0 +1,116 @@
+[
+  {
+    "type": "qcm",
+    "intitule": "Un jeton parfaitement signé par Keycloak, mais dont le claim `aud` vaut `account`, est présenté à l'API `notes-api`. Que doit répondre l'API ?",
+    "choix": [
+      "401 avec `WWW-Authenticate: Bearer error=\"invalid_token\"`",
+      "200, puisque la signature est valide",
+      "403 avec `error=\"insufficient_scope\"`",
+      "404, car la route n'existe pas pour ce jeton"
+    ],
+    "reponse": "401 avec `WWW-Authenticate: Bearer error=\"invalid_token\"`",
+    "explication": "Une **audience** qui ne contient pas l'identifiant de l'API rend le jeton **non destiné à cette API** : la RFC 6750 le range sous `invalid_token`, donc **401**. Le 403 `insufficient_scope` est réservé à un jeton valide pour l'API mais sans la permission de la route.",
+    "section": "Que répond l'API selon le jeton présenté ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  },
+  {
+    "type": "qcm",
+    "intitule": "Un client a obtenu un jeton valide de la bonne audience avec le seul scope `notes:lecture`. Il envoie un `POST /notes`. Quelle réponse est attendue ?",
+    "choix": [
+      "401, car le jeton est invalide",
+      "403 avec `error=\"insufficient_scope\"` et `scope=\"notes:ecriture\"`",
+      "200, car l'audience suffit pour toutes les routes",
+      "400, car la requête est mal formée"
+    ],
+    "reponse": "403 avec `error=\"insufficient_scope\"` et `scope=\"notes:ecriture\"`",
+    "explication": "Le jeton est **authentique et destiné à l'API** (audience correcte) : l'API ne le rejette donc pas en 401. Elle compare le **scope** de la route (`notes:ecriture`) à celui du jeton et répond **403** avec `insufficient_scope`, en nommant le scope manquant dans l'attribut `scope`.",
+    "section": "Que répond l'API selon le jeton présenté ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  },
+  {
+    "type": "vf",
+    "intitule": "Si la signature d'un jeton est valide d'après le JWKS de Keycloak, l'API peut en conclure que ce jeton lui est destiné.",
+    "reponse": "Faux",
+    "explication": "La **signature** prouve seulement que le jeton vient de Keycloak et n'a pas été modifié. Pour savoir qu'il est **destiné à l'API**, il faut contrôler `aud`, et pour savoir qu'il autorise l'appel, il faut contrôler `scope`. Sans ces contrôles, un jeton émis pour une autre application du même realm serait accepté.",
+    "section": "Quelles vérifications une API doit-elle faire sur un jeton ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  },
+  {
+    "type": "qcm",
+    "intitule": "Dans Keycloak, comment faire apparaître l'identifiant `notes-api` dans le claim `aud` des access tokens qui demandent le scope `notes:lecture` ?",
+    "choix": [
+      "Activer l'option PKCE sur le client `notes-api`",
+      "Régler la durée de vie de l'access token à 300 secondes",
+      "Ajouter au client scope `notes:lecture` un mapper de type Audience dont l'audience incluse est `notes-api`",
+      "Créer l'utilisateur `alice` dans le client `notes-api`"
+    ],
+    "reponse": "Ajouter au client scope `notes:lecture` un mapper de type Audience dont l'audience incluse est `notes-api`",
+    "explication": "Le **mapper d'audience** (`oidc-audience-mapper`, réglage `included.client.audience=notes-api`) rattaché au **client scope** ajoute l'API à `aud` chaque fois que le scope est demandé. PKCE et la durée de vie n'agissent pas sur `aud`, et un utilisateur n'appartient pas à un client.",
+    "section": "Comment configurer l'audience et les scopes dans Keycloak ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  },
+  {
+    "type": "qcm",
+    "intitule": "Un service de sauvegarde nocturne doit lire une API sans aucun utilisateur connecté. Quel flow OAuth 2 convient ?",
+    "choix": [
+      "Authorization Code avec PKCE",
+      "Client credentials avec un client confidentiel et un compte de service",
+      "Device authorization grant",
+      "Implicit"
+    ],
+    "reponse": "Client credentials avec un client confidentiel et un compte de service",
+    "explication": "Sans utilisateur, le service s'authentifie **lui-même** avec `grant_type=client_credentials` : son identité est celle du **compte de service** (`service-account-…`). Authorization Code suppose un utilisateur et un navigateur, le device grant sert un appareil sans navigateur, et l'implicit est abandonné.",
+    "section": "Comment donner un accès machine à un service ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  },
+  {
+    "type": "qcm",
+    "intitule": "Comment transmettre le secret d'un client à `curl` sans qu'il apparaisse dans la ligne de commande, donc dans l'historique et la liste des processus ?",
+    "choix": [
+      "`-d client_secret=MON_SECRET` directement dans la commande",
+      "`--data-urlencode \"client_secret@secret-sauvegarde.txt\"`, avec un fichier de permissions 600",
+      "`-H \"X-Secret: MON_SECRET\"`",
+      "Mettre le secret dans le fichier Compose du projet"
+    ],
+    "reponse": "`--data-urlencode \"client_secret@secret-sauvegarde.txt\"`, avec un fichier de permissions 600",
+    "explication": "La forme `nom@fichier` de `--data-urlencode` **lit la valeur dans un fichier** : le secret n'est ni dans la ligne de commande ni dans l'historique du shell. Le fichier doit être en **permissions 600** (`umask 077`) et hors du dépôt. Un secret dans un Compose ou dans un en-tête passé en clair reste exposé.",
+    "section": "Comment donner un accès machine à un service ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  },
+  {
+    "type": "qcm",
+    "intitule": "Une CLI a reçu de Keycloak un `device_code`, un `user_code` et `\"interval\": 5`. Que doit-elle faire ?",
+    "choix": [
+      "Interroger le token endpoint avec le `device_code` toutes les 5 secondes, en attendant l'approbation de l'utilisateur dans un navigateur",
+      "Demander à l'utilisateur de saisir son mot de passe dans la CLI",
+      "Envoyer le `user_code` à l'API comme jeton Bearer",
+      "Rappeler le token endpoint en boucle sans pause jusqu'à obtenir un jeton"
+    ],
+    "reponse": "Interroger le token endpoint avec le `device_code` toutes les 5 secondes, en attendant l'approbation de l'utilisateur dans un navigateur",
+    "explication": "Dans le **device authorization grant** (RFC 8628), l'utilisateur approuve le `user_code` sur un autre appareil pendant que la CLI **interroge le token endpoint** avec `grant_type=urn:ietf:params:oauth:grant-type:device_code`. Tant que l'approbation manque, la réponse est `authorization_pending` ; il faut respecter `interval`.",
+    "section": "Comment authentifier une CLI sans navigateur (device grant) ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  },
+  {
+    "type": "qcm",
+    "intitule": "Quelle implémentation du token exchange Keycloak 26.7.0 est entièrement supportée et activée par défaut, et que couvre-t-elle ?",
+    "choix": [
+      "Le legacy token exchange V1, qui couvre aussi les jetons externes",
+      "Le standard token exchange V2, limité à l'échange entre clients du même realm",
+      "Aucune : le token exchange doit être activé par une fonctionnalité preview",
+      "Le standard token exchange V2, qui accepte les clients publics"
+    ],
+    "reponse": "Le standard token exchange V2, limité à l'échange entre clients du même realm",
+    "explication": "La documentation de Keycloak décrit le **standard token exchange (V2)** comme entièrement supporté et activé par défaut, mais limité à l'échange **interne** (même realm) et réservé aux **clients confidentiels**. Le **V1 (legacy)** est une fonctionnalité preview, dépréciée et désactivée par défaut.",
+    "section": "Comment une API appelle-t-elle une autre API au nom de l'utilisateur ?",
+    "url": "/docs/services/identite/keycloak/proteger-une-api/",
+    "level": "intermediaire"
+  }
+]

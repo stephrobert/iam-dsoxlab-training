@@ -1,0 +1,28 @@
+--- joker: ce que Keycloak laisse passer
+redirect_uri attaquant -> HTTP 200
+après retour exact -> HTTP 400
+
+--- secret faux
+code: efa8cd8b-472...
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+--- événement
+
+{"type":"CODE_TO_TOKEN_ERROR","clientId":"boutique","error":"invalid_client_credentials","details":{}}
+--- bon secret (le code précédent est-il perdu ?)
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+--- bon secret, nouveau code
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+--- rejeu du même code
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+
+{"type":"CODE_TO_TOKEN_ERROR","clientId":"boutique","error":"invalid_client_credentials","details":{}}
+--- redirect_uri différent au token endpoint
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+
+{"type":"CODE_TO_TOKEN_ERROR","clientId":"boutique","error":"invalid_client_credentials","details":{}}
+--- sans secret du tout
+{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}
+
+{"type":"CODE_TO_TOKEN_ERROR","clientId":"boutique","error":"invalid_client_credentials","details":{}}
+2026-10-15 19:23:27,744 WARN  [org.keycloak.events] (executor-thread-1) type="CODE_TO_TOKEN_ERROR", realmId="e585bea1-1f01-4fbb-a38e-909c8f2f5187", realmName="lab", clientId="boutique", userId="null", ipAddress="172.17.0.1", error="invalid_client_credentials", grant_type="authorization_code"
+2026-10-15 19:23:28,737 WARN  [org.keycloak.events] (executor-thread-1) type="CODE_TO_TOKEN_ERROR", realmId="e585bea1-1f01-4fbb-a38e-909c8f2f5187", realmName="lab", clientId="boutique", userId="null", ipAddress="172.17.0.1", error="invalid_client_credentials", grant_type="authorization_code"
