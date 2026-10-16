@@ -1,0 +1,132 @@
+---
+# Les TÉMOINS du socle : une application et une API que les labs branchent sur
+# l'IdP, et les outils par lesquels les tests parcourent une intégration.
+#
+# POURQUOI DES TÉMOINS VERSIONNÉS, ET COMPLETS
+#
+# Un lab d'identité ne se prouve pas en lisant la configuration de l'IdP : il
+# se prouve en montrant qu'une application y délègue vraiment sa connexion.
+# Sans application, le test se réduit à « le client est déclaré », ce qui est
+# vrai d'un client que personne ne peut utiliser.
+#
+# L'application témoin est donc LIVRÉE COMPLÈTE, et versionnée en clair. Ce
+# n'est pas un oubli : le travail demandé est de déclarer le client dans
+# Keycloak et de pointer l'application dessus. Lire son code ne donne aucune
+# réponse, la réponse vit dans la configuration du fournisseur.
+#
+# Ce qui n'est PAS livré, c'est `configuration.json` : l'application ne sait ni
+# à quel issuer s'adresser ni sous quel identifiant de client. C'est le premier
+# geste de l'apprenant, et le test le plus simple du lab.
+#
+# LES DÉPENDANCES SONT ÉPINGLÉES AU STRICT
+#
+# PyJWT et cryptography dans les versions réellement jouées le 2026-10-15. Un
+# témoin dont les dépendances bougent fait échouer un lab pour une raison qui
+# ne dit rien de l'apprenant, et le diagnostic part alors dans son travail.
+
+- name: Créer les répertoires des témoins
+  ansible.builtin.file:
+    path: "{{ item.chemin }}"
+    state: directory
+    owner: student
+    group: docker
+    mode: "{{ item.mode }}"
+  loop:
+    - { chemin: /opt/iam-lab, mode: "0750" }
+    - { chemin: /opt/iam-lab/outils, mode: "0750" }
+    # Le répertoire du témoin est le seul OUVERT EN ÉCRITURE AU GROUPE, et
+    # c'est nécessaire : l'apprenant y écrit `configuration.json` sous
+    # `student`, tandis que la solution de référence l'écrit sous le compte de
+    # service `ansible`. Les deux sont dans `docker`.
+    #
+    # Mesuré le 2026-10-16 : en 0750, la solution échouait sur
+    # « Permission denied » à l'écriture de la configuration, et l'échec
+    # ressemblait à un défaut du témoin.
+    - { chemin: /opt/iam-lab/appli-temoin, mode: "0770" }
+
+- name: Poser les outils de parcours
+  # Ils servent aux TESTS, pas à l'apprenant, et tournent avec le `python3` de
+  # la machine, sans environnement virtuel. C'est voulu : un test ne doit pas
+  # dépendre d'une installation qu'un lab pourrait défaire.
+  ansible.builtin.copy:
+    src: "temoins/outils/{{ item }}"
+    dest: "/opt/iam-lab/outils/{{ item }}"
+    owner: student
+    group: docker
+    mode: "0750"
+  loop:
+    - navigateur.py
+    - parcours.py
+    # `arreter-temoin.sh` arrête ce qui écoute sur un port, par le PORT et non
+    # par la ligne de commande : l'apprenant lance le témoin comme il veut, et
+    # un `pkill -f <chemin absolu>` ne trouve rien quand il l'a lancé depuis
+    # son répertoire. Mesuré le 2026-10-16, et cela a fait échouer un setup.
+    - arreter-temoin.sh
+
+- name: Poser l'application témoin
+  ansible.builtin.copy:
+    src: "temoins/appli-web/{{ item }}"
+    dest: "/opt/iam-lab/appli-temoin/{{ item }}"
+    owner: student
+    group: docker
+    mode: "0640"
+  loop:
+    - appli.py
+    - requirements.txt
+  register: appli_posee
+
+- name: L'environnement virtuel des témoins existe-t-il ?
+  ansible.builtin.stat:
+    path: /opt/iam-lab/appli-temoin/.venv/bin/python
+  register: venv_temoins
+
+- name: Créer l'environnement virtuel des témoins
+  when: not venv_temoins.stat.exists
+  ansible.builtin.command:
+    cmd: python3 -m venv /opt/iam-lab/appli-temoin/.venv
+  changed_when: true
+
+- name: Installer les dépendances épinglées des témoins
+  # Rejoué quand `requirements.txt` change, et au premier passage. `pip` est
+  # idempotent sur des versions épinglées, mais l'appel coûte un accès réseau :
+  # le conditionner évite de le payer à chaque `dsoxlab run`.
+  when: not venv_temoins.stat.exists or appli_posee is changed
+  ansible.builtin.command:
+    cmd: >-
+      /opt/iam-lab/appli-temoin/.venv/bin/pip install --no-cache-dir
+      --requirement /opt/iam-lab/appli-temoin/requirements.txt
+  changed_when: true
+  register: pip_temoins
+  retries: 3
+  delay: 5
+  until: pip_temoins is succeeded
+
+- name: Vérifier que le témoin peut VRAIMENT valider un jeton
+  # Le contrôle porte sur le comportement, pas sur la présence des fichiers.
+  # Un `pip install` qui réussit laisse un environnement où `import jwt` peut
+  # encore échouer, faute de la partie compilée de `cryptography` : le témoin
+  # démarre alors et refuse tous les jetons, ce qui ressemble trait pour trait
+  # à un client mal déclaré.
+  ansible.builtin.command:
+    cmd: >-
+      /opt/iam-lab/appli-temoin/.venv/bin/python -c
+      "import jwt; from jwt import PyJWKClient; jwt.algorithms.RSAAlgorithm"
+  changed_when: false
+
+- name: Rendre l'appartenance au répertoire des témoins cohérente
+  # `pip` a créé l'environnement en root : sans cela, l'apprenant ne peut ni
+  # lancer le témoin ni lire ses traces, et il n'a aucun moyen de le deviner.
+  ansible.builtin.file:
+    path: /opt/iam-lab/appli-temoin
+    state: directory
+    owner: student
+    group: docker
+    mode: "0770"
+    recurse: true
+
+- name: Dire ce que les témoins offrent
+  ansible.builtin.debug:
+    msg:
+      - "Application témoin : /opt/iam-lab/appli-temoin/appli.py (port 9080 par défaut)"
+      - "Elle attend configuration.json, que le lab demande d'écrire."
+      - "Outils de test : /opt/iam-lab/outils/{navigateur,parcours}.py"

@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-04-client-oidc-pkce
+title: "Connect an application with OIDC and PKCE"
+description: |
+  Delegate a witness application's sign-in to Keycloak, using the authorization
+  code flow with PKCE. Graded on what the provider actually enforces: a public
+  client with no password grant, PKCE in S256, exact redirect URIs, and an ID
+  token the application validates down to its nonce.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: intermediate
+estimated_time: "45m"
+skills:
+  - keycloak
+  - oidc
+  - pkce
+  - oauth2
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/securiser-application-oidc/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # La sécurité est le sujet, pas un supplément : le lab est noté sur ce que le
+  # fournisseur REFUSE autant que sur ce qu'il accepte.
+  security: true
+  persistence_after_reboot: false

@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Connecter une application en OIDC avec PKCE"
+description: |
+  Déléguer la connexion d'une application témoin à Keycloak, en flux de code
+  d'autorisation avec PKCE. Noté sur ce que le fournisseur impose vraiment :
+  un client public sans octroi par mot de passe, PKCE en S256, des URI de
+  redirection exactes, et un ID token que l'application valide jusqu'à son
+  nonce.

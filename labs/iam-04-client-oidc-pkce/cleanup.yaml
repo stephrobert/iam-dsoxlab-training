@@ -1,0 +1,55 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Ce qui part, et pourquoi chaque ligne compte : le client que l'apprenant a
+# déclaré, le compte de test, la configuration de l'application témoin et le
+# processus du témoin. Un seul de ces restes rendrait le lab suivant vert sans
+# travail, ou le ferait échouer sur un port déjà pris.
+#
+# Le socle LUI-MÊME reste debout : il est partagé par quinze labs, et le
+# remonter à chaque nettoyage coûterait trois minutes par lab pour rien.
+- name: Nettoyer le lab iam-04-client-oidc-pkce
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Arrêter l'application témoin
+      # Par le PORT, et non par la ligne de commande : l'apprenant lance le
+      # témoin comme il veut, et un `pkill -f <chemin absolu>` ne trouve rien
+      # quand il l'a lancé depuis son répertoire. Mesuré le 2026-10-16.
+      ansible.builtin.command:
+        cmd: /opt/iam-lab/outils/arreter-temoin.sh 9080
+      changed_when: true
+
+    - name: Retirer la configuration que l'apprenant a écrite
+      ansible.builtin.file:
+        path: /opt/iam-lab/appli-temoin/configuration.json
+        state: absent
+
+    - name: Retirer la trace du témoin
+      ansible.builtin.file:
+        path: /opt/iam-lab/appli-temoin/temoin.log
+        state: absent
+
+    - name: Retirer le client et le compte de test dans Keycloak
+      # Par le script de nettoyage, et non par une suite de tâches `uri` : il
+      # lui faut un jeton d'administration, que le script obtient déjà pour la
+      # mise en situation. Dupliquer cette obtention ici en ferait deux endroits
+      # à corriger le jour où le socle changera de compte.
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le port du témoin est VRAIMENT libéré
+      # Le contrôle porte sur l'ÉTAT, pas sur le fait que `pkill` a rendu 0 :
+      # un processus en cours d'arrêt tient encore son port, et le lab suivant
+      # échouerait sur un « address already in use » qui ne dirait rien de lui.
+      ansible.builtin.wait_for:
+        port: 9080
+        host: 127.0.0.1
+        state: stopped
+        timeout: 30

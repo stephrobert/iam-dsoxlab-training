@@ -230,6 +230,12 @@
     status_code: [201]
   no_log: true
 
+- name: Installer les témoins et les outils de parcours
+  # Après Keycloak, parce qu'un témoin sans fournisseur d'identité n'a rien à
+  # interroger, et parce que l'ordre de ce fichier est l'ordre dans lequel un
+  # lecteur apprend ce que le socle contient.
+  ansible.builtin.include_tasks: temoins.yml
+
 - name: Dire ce que le socle a monté
   # Le relevé de validation porte les versions réellement jouées. Les secrets
   # n'y figurent pas : ce message va dans les journaux, que `dsoxlab support`

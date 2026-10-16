@@ -1,0 +1,126 @@
+# Hooks pre-commit d'un dépôt de CONTENU (catalogue de labs). Arrêt net sur les
+# secrets et les clés privées. Pas de mypy : il n'y a pas de source de paquet,
+# et le contrat déclaratif est validé par `dsoxlab validate-structure`.
+#
+# Installation, une fois :   pre-commit install --install-hooks
+# Sur tout le dépôt :        pre-commit run --all-files
+#
+# Aligné sur les huit autres catalogues, qui emploient tous trufflehog. Trois
+# différences que ce dépôt impose :
+#
+#   - tous ses labs sont en `runtime: vm`, donc `fixtures/` n'y contient pas du
+#     matériel livré tel quel à l'apprenant mais un script de mise en situation.
+#     Il est donc LINTÉ, là où les catalogues shell l'excluent ;
+#   - `preparation/` porte les scripts réellement joués par les auteurs des
+#     leçons, conservés tels quels comme pièce à conviction : les reformater
+#     leur retirerait leur valeur de témoignage ;
+#   - ses garde-fous sont ceux dont le test existe, et pas davantage. Un hook
+#     qui pointerait un test absent échouerait à chaque commit, et le réflexe
+#     serait alors de désactiver le hook.
+
+minimum_pre_commit_version: "3.5.0"
+default_install_hook_types: [pre-commit, pre-push]
+
+# Deux répertoires que les hooks ne doivent NI lire NI réécrire.
+#
+# `solution/` contient les solutions de référence, chiffrées par ansible-vault.
+# C'est du chiffré, pas du source : `end-of-file-fixer` et `trailing-whitespace`
+# corrompraient la charge vault de façon irréversible, et ruff échoue d'emblée
+# sur un fichier chiffré.
+#
+# `preparation/` est l'archive de ce qui a été mesuré le 2026-10-15 contre
+# Keycloak 26.7.0, avec les sorties réelles. Un hook qui la reformaterait
+# effacerait la trace de ce qui a été observé.
+exclude: '^(solution/|preparation/)'
+
+repos:
+  # Hygiène générale, et arrêt net sur les secrets et les clés privées.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '(^LICENSE$|\.md$)'
+      - id: end-of-file-fixer
+        exclude: '^LICENSE$'
+      - id: check-yaml # valide chaque lab.yaml, meta.yml et playbook
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=2048']
+      - id: detect-private-key # bloque une clé SSH privée commitée
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: check-executables-have-shebangs
+
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (lint du python des labs et des témoins)
+        entry: uvx ruff check --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      # --no-update : ne jamais aller chercher un binaire neuf au moment du
+      # hook, c'est un durcissement de la chaîne d'approvisionnement.
+      - id: trufflehog
+        name: trufflehog (scan de secrets)
+        entry: trufflehog git file://. --since-commit HEAD --results=verified --fail --no-update
+        language: system
+        pass_filenames: false
+
+      # Une solution ne doit jamais partir en clair : cela gâche le lab, et git
+      # la garde pour toujours. L'en-tête ansible-vault est la preuve du
+      # chiffrement, on la lit plutôt que de faire confiance à l'auteur.
+      - id: solutions-chiffrees
+        name: les solutions restent chiffrées par ansible-vault
+        entry: uv run --no-project --with pytest --with pyyaml pytest tests/test_solutions_chiffrees.py -q
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # La fixture de rejeu rend la main SANS UN MOT quand elle ne reconnaît
+      # pas un lab. Les tests tournent alors sur une machine où la solution n'a
+      # jamais été jouée, et les échecs ressemblent à un lab mal écrit. Ce
+      # contrôle ne demande aucune machine.
+      - id: harnais-voit-les-labs
+        name: le harnais de rejeu reconnaît chaque lab du catalogue
+        entry: uv run --no-project --with pytest --with pyyaml pytest tests/test_harnais_voit_les_labs.py -q
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Une règle de rédaction sans contrôle dérive au premier lab écrit vite.
+      - id: style-apprenant
+        name: ni emoji décoratif ni tiret cadratin dans ce que l'apprenant lit
+        entry: uv run --no-project --with pytest --with pyyaml pytest tests/test_style_apprenant.py -q
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # LE GARDE-FOU DU GARDE-FOU
+      #
+      # Repris du catalogue devsecops, qui l'a écrit après avoir trouvé neuf
+      # vérificateurs dans `tests/` et un seul câblé à un hook. Les huit autres
+      # ne tournaient que si quelqu'un lançait `pytest tests/` à la main, donc
+      # jamais pendant un commit. C'est pire que de ne pas les avoir : on les
+      # croit en poste.
+      - id: outillage-coherent
+        name: chaque vérificateur est câblé, chaque hook pointe un test réel
+        entry: uv run --no-project --with pytest --with pyyaml pytest tests/test_outillage_coherent.py -q
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Le contrat du catalogue, au push : `validate-structure` lit meta.yml,
+      # chaque lab.yaml et chaque lien relatif des README. Il attrape ce
+      # qu'aucun test local ne voit.
+      - id: contrat-du-catalogue
+        name: dsoxlab validate-structure
+        entry: uvx dsoxlab validate-structure
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

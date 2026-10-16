@@ -16,6 +16,11 @@ exclude = [
   # dire. Le repertoire de travail de l'apprenant n'est pas du code du depot.
   "solution",
   "labs/*/challenge/work",
+  # Les scripts REELLEMENT JOUES par les auteurs des lecons, conserves tels
+  # quels comme piece a conviction : ils portent les sorties mesurees contre
+  # Keycloak 26.7.0 le 2026-10-15. Les reformater leur retirerait leur valeur
+  # de temoignage, et aucun n'est execute par le catalogue.
+  "preparation",
 ]
 
 [tool.ruff.lint]

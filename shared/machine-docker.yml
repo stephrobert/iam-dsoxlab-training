@@ -51,18 +51,44 @@
   # les TESTS lisent l'état du système. `ldap-utils` porte `ldapsearch`, dont
   # les labs d'annuaire se servent pour prouver qu'un compte existe vraiment
   # côté annuaire, et non seulement dans l'IdP qui le fédère.
+  #
+  # `python3-venv` porte les témoins : l'application et l'API que les labs
+  # d'intégration branchent sur l'IdP tournent dans un environnement virtuel
+  # aux dépendances épinglées. Il n'est pas tiré par Docker, et son absence ne
+  # se voit qu'au moment où un témoin refuse de démarrer.
+  #
+  # `acl` est la dépendance cachée de `become_user` vers un compte NON
+  # PRIVILÉGIÉ. Mesuré le 2026-10-16 : sans lui, Ansible retombe sur une
+  # syntaxe d'ACL que `chmod` de GNU refuse, et la tâche échoue sur
+  #
+  #   Failed to set permissions on the temporary files Ansible needs to create
+  #   when becoming an unprivileged user
+  #   chmod: invalid mode: 'A+user:student:rx:allow'
+  #
+  # Le message ne nomme pas le paquet manquant, et la piste part vers les
+  # droits du répertoire, qui sont pourtant bons. Tout lab qui lance un
+  # processus sous le compte humain en a besoin.
   ansible.builtin.package:
     name: "{{ outils_du_socle }}"
     state: present
   vars:
     outils_du_socle: >-
       {{
-        ['ca-certificates', 'curl', 'jq', 'openssl']
-        + (['ldap-utils'] if ansible_facts['os_family'] == 'Debian' else ['openldap-clients'])
+        ['ca-certificates', 'curl', 'jq', 'openssl', 'acl']
+        + (['ldap-utils', 'python3-venv'] if ansible_facts['os_family'] == 'Debian'
+           else ['openldap-clients', 'python3-pip'])
       }}
+  register: outils_installes
   retries: 3
   delay: 5
-  until: true
+  # `until: outils_installes is succeeded`, et non `until: true`.
+  #
+  # Avec `until: true`, la condition est satisfaite dès la première tentative,
+  # y compris quand celle-ci a échoué : les trois essais annoncés n'ont alors
+  # jamais lieu. Un miroir de paquets momentanément indisponible, qui est
+  # précisément ce que ces essais visent, faisait échouer le setup du premier
+  # coup.
+  until: outils_installes is succeeded
 
 - name: Déclarer le dépôt Docker officiel
   # Le paquet `docker.io` d'Ubuntu est en retard et ne fournit pas le plugin
@@ -113,9 +139,11 @@
       - docker-compose-plugin
     state: present
     update_cache: true
+  register: docker_installe
   retries: 3
   delay: 10
-  until: true
+  # Voir la tâche des outils : `until: true` annule les essais qu'il annonce.
+  until: docker_installe is succeeded
 
 - name: Démarrer Docker, et le rendre persistant
   # `enabled: true` n'est pas décoratif : un lab qui parle de persistance se

@@ -1,0 +1,6 @@
+# Épinglé au strict, et non au compatible : un témoin dont les dépendances
+# bougent fait échouer un lab pour une raison qui ne dit rien de l'apprenant.
+# Ces deux versions sont celles réellement jouées le 2026-10-15 contre
+# Keycloak 26.7.0 (preparation/scripts-executes/proteger-une-api/).
+PyJWT[crypto]==2.15.1
+cryptography==50.0.2
