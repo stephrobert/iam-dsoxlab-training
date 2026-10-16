@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Déléguer la connexion à un fournisseur externe"
+description: |
+  Laisser des gens se connecter avec un compte que votre realm ne détient pas,
+  et contrôler exactement ce que cela leur donne. Noté sur le compte qui
+  arrive : rattaché au fournisseur, dans le groupe par défaut, et sans aucun
+  rôle d'administration. Le piège est un flux de premier login qui lie un
+  inconnu à un compte existant sur la foi d'une adresse qui correspond.

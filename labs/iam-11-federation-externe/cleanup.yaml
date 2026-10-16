@@ -1,0 +1,64 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Le realm partenaire part en entier. Côté courtier, le fournisseur d'identité,
+# les comptes liés, les groupes et le groupe par défaut repartent aussi : un
+# groupe par défaut oublié ferait entrer tous les comptes du lab suivant dans un
+# groupe dont il ne sait rien.
+- name: Nettoyer le lab iam-11-federation-externe
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer les deux côtés de la fédération
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le realm partenaire a disparu
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/realms/entreprise-externe/.well-known/openid-configuration
+        status_code: [404]
+      register: realm_parti
+      retries: 5
+      delay: 2
+      until: realm_parti is succeeded
+
+    - name: Vérifier que le courtier n'a plus de groupe par défaut
+      # Le contrôle porte sur l'ÉTAT : un groupe par défaut qui survivrait
+      # ferait entrer tous les comptes du lab suivant dans un groupe dont il ne
+      # sait rien, et son test d'appartenance serait vert sans travail.
+      ansible.builtin.shell:
+        cmd: |
+          set -u
+          u=$(grep '^KC_BOOTSTRAP_ADMIN_USERNAME=' /opt/socle-iam/.env | cut -d= -f2-)
+          p=$(grep '^KC_BOOTSTRAP_ADMIN_PASSWORD=' /opt/socle-iam/.env | cut -d= -f2-)
+          jeton=$(curl -sS --max-time 20 -X POST \
+            http://127.0.0.1:8080/realms/master/protocol/openid-connect/token \
+            -d grant_type=password -d client_id=admin-cli \
+            -d "username=$u" -d "password=$p" | jq -r '.access_token // empty')
+          curl -sS --max-time 30 \
+            http://127.0.0.1:8080/admin/realms/formation/default-groups \
+            -H "Authorization: Bearer $jeton" | jq 'length'
+        executable: /bin/bash
+      register: groupes_par_defaut
+      changed_when: false
+
+    - name: Refuser de conclure s'il en reste un
+      ansible.builtin.assert:
+        that:
+          - groupes_par_defaut.stdout | trim | int == 0
+        fail_msg: >-
+          Le realm « formation » garde
+          {{ groupes_par_defaut.stdout | trim }} groupe(s) par défaut.
+
+    - name: Vérifier que le port du témoin est libéré
+      ansible.builtin.wait_for:
+        port: 9080
+        host: 127.0.0.1
+        state: stopped
+        timeout: 30

@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-11-federation-externe
+title: "Broker an external identity provider"
+description: |
+  Let people sign in with an account your realm does not hold, and control
+  exactly what that buys them. Graded on the account that arrives: linked to
+  the provider, in the default group, and with no administration role. The
+  trap is a first-login flow that links a stranger to an existing account on
+  the strength of a matching email.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: intermediate
+estimated_time: "40m"
+skills:
+  - keycloak
+  - oidc
+  - federation
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/federation-entrante/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Ce que le premier login accorde EST le sujet : une liaison automatique sur
+  # une adresse qui correspond est une prise de contrôle de compte.
+  security: true
+  persistence_after_reboot: false
