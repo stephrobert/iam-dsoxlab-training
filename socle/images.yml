@@ -1,0 +1,60 @@
+# Les images du socle, épinglées PAR DIGEST, relevées sur les registres.
+#
+# POURQUOI CE FICHIER EXISTE
+#
+# Un `image:tag` sans digest ne décrit pas ce qui tourne : un tag se déplace,
+# et deux apprenants qui jouent le même lab à deux semaines d'écart peuvent
+# obtenir deux Keycloak différents. Le digest, lui, nomme un contenu, et il est
+# vérifié par le démon au moment du `pull`.
+#
+# Les versions vivent ICI, une seule fois, avec la date de leur relevé. Le
+# Compose et les playbooks les lisent, ils ne les recopient pas : une valeur
+# qu'il faut penser à recopier finit toujours par mentir.
+#
+# RELEVÉ LE 2026-10-16, à la source, sur quay.io et Docker Hub.
+#
+# Les versions que les leçons du site ont jouées sont en commentaire : l'écart
+# entre ce que la leçon montre et ce que le lab fait tourner doit se voir, et
+# se décider, pas se découvrir en jouant.
+
+keycloak:
+  # Dernière version stable au moment du relevé. Les leçons du site ont été
+  # jouées en 26.7.0, donc un écart de deux versions mineures : 26.8.0 passe
+  # l'API SCIM native en « supported » et 26.6 les Workflows de gouvernance,
+  # deux fonctions dont les labs 08 et 13 se servent. Jouer les labs sur 26.8
+  # est donc un choix, pas une dérive.
+  version: "26.8.1"
+  image: "quay.io/keycloak/keycloak"
+  digest: "sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244"
+  releve_le: "2026-10-16"
+  # Port de gestion, où vivent la santé et les métriques. Ce n'est PAS le port
+  # de l'application, et la fiche du lab 02 fait porter un test là-dessus.
+  port_gestion: 9000
+
+postgres:
+  # La documentation de Keycloak 26.8 liste PostgreSQL 17 et 18 comme bases
+  # supportées. On prend 18, la plus récente des deux, et le dernier correctif
+  # publié de cette majeure. Si un défaut apparaissait sur 18, 17 est le repli
+  # supporté, et c'est la seule raison qui justifierait d'en changer.
+  version: "18.6"
+  image: "docker.io/library/postgres"
+  digest: "sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336"
+  releve_le: "2026-10-16"
+
+lldap:
+  # LLDAP publie des tags datés ET des tags sémantiques : on prend le
+  # sémantique, qui dit quelque chose. La variante Debian plutôt qu'Alpine,
+  # pour que `ldapsearch` et les outils du conteneur se comportent comme dans
+  # la leçon.
+  #
+  # Attention : LLDAP n'est PAS un fournisseur OIDC. L'OIDC vient de l'IdP
+  # placé devant lui, et un lab qui l'oublierait enseignerait un faux.
+  version: "v0.6.3-debian"
+  image: "docker.io/lldap/lldap"
+  digest: "sha256:2f208d7dc45d0b01648ab9c869fa6f65b843a8c9647e99dd929739f5a51a945b"
+  releve_le: "2026-10-16"
+  # Ports relevés en lab par les auteurs des leçons.
+  ports:
+    ldap: 3890
+    ldaps: 6360
+    web: 17170
