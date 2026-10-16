@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-13-revue-des-acces
+title: "Automate the lifecycle, and conduct a real review"
+description: |
+  Open the provider's SCIM API, provision an account through it, write a
+  workflow that disables an idle account rather than deleting it, and produce a
+  review that finds the access nobody justified. Graded on the API answering,
+  the workflow disabling, and the unjustified access being gone.
+section: niveau-2
+level: niveau-2
+lab_type: lab
+difficulty: advanced
+estimated_time: "45m"
+skills:
+  - keycloak
+  - scim
+  - gouvernance
+  - workflows
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Un workflow qui supprime au lieu de désactiver détruit la traçabilité, et
+  # une API de provisionnement mal ouverte est une porte d'administration.
+  security: true
+  persistence_after_reboot: false

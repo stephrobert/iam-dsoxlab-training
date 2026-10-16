@@ -1,0 +1,31 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# L'API SCIM est REFERMÉE : la laisser ouverte exposerait une API de
+# provisionnement au lab suivant, qui ne l'a pas demandée. Les workflows
+# partent aussi : un workflow de cycle de vie qui survivrait désactiverait des
+# comptes d'un autre lab.
+- name: Nettoyer le lab iam-13-revue-des-acces
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Refermer l'API SCIM, retirer les workflows et les objets du lab
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que l'API SCIM ne répond plus
+      # Le contrôle porte sur l'ÉTAT : un 404 prouve que l'API est refermée,
+      # là où lire l'attribut du realm ne prouverait que l'intention.
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/realms/formation/scim/v2/ServiceProviderConfig
+        status_code: [404]
+      register: scim_ferme
+      retries: 5
+      delay: 2
+      until: scim_ferme is succeeded

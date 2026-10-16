@@ -1,0 +1,8 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Automatiser le cycle de vie, et conduire une vraie revue"
+description: |
+  Ouvrir l'API SCIM du fournisseur, y provisionner un compte, écrire un
+  workflow qui désactive un compte inactif au lieu de le supprimer, et produire
+  une revue qui trouve l'accès que personne n'a justifié. Noté sur l'API qui
+  répond, le workflow qui désactive, et l'accès injustifié qui a disparu.

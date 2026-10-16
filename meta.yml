@@ -132,3 +132,4 @@ sections:
     labs:
       - iam-07-mfa-keycloak
       - iam-08-depart-collaborateur
+      - iam-13-revue-des-acces
