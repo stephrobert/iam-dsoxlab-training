@@ -18,7 +18,8 @@ Ce qu'elle fait, et qui est le sujet du lab :
   validation d'`iss` arrête.
 
 Elle lit sa configuration dans `configuration.json`, à côté d'elle, que
-l'apprenant remplit.
+l'apprenant remplit. Une clef optionnelle, `idp_hint`, lui fait demander
+un fournisseur d'identité nommé plutôt que la page de connexion du realm.
 
 Le point `/etat` rend son état en JSON : c'est ce que les tests interrogent.
 Aucune page n'affiche de jeton, et le journal n'en écrit pas.
@@ -72,6 +73,14 @@ def configuration() -> dict[str, str]:
             "fournisseur s'adresser ni sous quel identifiant de client."
         )
     donnees = json.loads(CONFIGURATION.read_text(encoding="utf-8"))
+    # `idp_hint` est OPTIONNEL, et c'est le seul champ qui le soit.
+    #
+    # Quand il est présent, l'application demande au fournisseur d'envoyer
+    # l'utilisateur directement chez un fournisseur d'identité nommé, au lieu
+    # de lui servir sa propre page de connexion. C'est ce qu'une application
+    # fait quand elle sait d'où viennent ses utilisateurs, et c'est ce qui rend
+    # un test de fédération déterministe : sans lui, le parcours s'arrête sur
+    # le formulaire local, où le compte n'existe pas.
     manquants = [
         clef for clef in ("issuer", "client_id", "redirect_uri")
         if not donnees.get(clef)
@@ -180,6 +189,7 @@ class Gestionnaire(http.server.BaseHTTPRequestHandler):
                 etat["issuer"] = conf["issuer"]
                 etat["client_id"] = conf["client_id"]
                 etat["redirect_uri"] = conf["redirect_uri"]
+                etat["idp_hint"] = conf.get("idp_hint") or None
             except (RuntimeError, json.JSONDecodeError) as erreur:
                 etat["configuration_lue"] = False
                 etat["configuration_erreur"] = str(erreur)
@@ -211,6 +221,8 @@ class Gestionnaire(http.server.BaseHTTPRequestHandler):
                 "code_challenge": defi,
                 "code_challenge_method": "S256",
             }
+            if conf.get("idp_hint"):
+                parametres["kc_idp_hint"] = conf["idp_hint"]
             cible = (
                 f"{conf['issuer']}/protocol/openid-connect/auth"
                 f"?{urllib.parse.urlencode(parametres)}"

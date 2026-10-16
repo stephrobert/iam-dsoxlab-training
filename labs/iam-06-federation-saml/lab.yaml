@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-06-federation-saml
+title: "Federate an application over SAML"
+description: |
+  Exchange metadata between the provider and a service provider, sign the
+  assertions, and carry the right attributes across. Graded on both sides: the
+  SAML client that signs, and the account the service provider ends up with,
+  with its email and its group.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: advanced
+estimated_time: "50m"
+skills:
+  - keycloak
+  - saml
+  - federation
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/fondamentaux/saml/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # La signature des assertions EST le sujet : une assertion non signée est un
+  # document que n'importe qui peut fabriquer.
+  security: true
+  persistence_after_reboot: false

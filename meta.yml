@@ -122,6 +122,7 @@ sections:
       - iam-05-api-protegee
       - iam-01-annuaire-lldap
       - iam-03-federation-ldap
+      - iam-06-federation-saml
 
   - id: niveau-2
     title: "Level 2: run and govern"

@@ -1,0 +1,39 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Le realm du fournisseur de service part en entier, ce qui emporte son client,
+# son groupe, son fournisseur d'identité et les comptes liés. Côté émetteur, le
+# client SAML, le compte et le groupe repartent aussi : le lab suivant doit
+# trouver le realm « formation » tel qu'il l'attend.
+- name: Nettoyer le lab iam-06-federation-saml
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer les deux côtés de la fédération
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le realm du fournisseur de service a disparu
+      # Le contrôle porte sur l'ÉTAT, pas sur le code de retour du nettoyage :
+      # un realm qui survivrait porterait un fournisseur d'identité déjà
+      # configuré, et le lab serait vert sans travail.
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/realms/partenaire-sp/.well-known/openid-configuration
+        status_code: [404]
+      register: realm_parti
+      retries: 5
+      delay: 2
+      until: realm_parti is succeeded
+
+    - name: Vérifier que le port du témoin est libéré
+      ansible.builtin.wait_for:
+        port: 9080
+        host: 127.0.0.1
+        state: stopped
+        timeout: 30

@@ -1,0 +1,8 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Fédérer une application en SAML"
+description: |
+  Échanger les métadonnées entre le fournisseur et un fournisseur de service,
+  signer les assertions, et faire passer les bons attributs. Noté des deux
+  côtés : le client SAML qui signe, et le compte que le fournisseur de service
+  obtient au bout, avec son adresse et son groupe.
