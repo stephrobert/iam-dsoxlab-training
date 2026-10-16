@@ -106,7 +106,20 @@ sections:
   - id: niveau-1
     title: "Level 1: wire an application to an identity provider"
     description: "Install Keycloak with its database, wire an application in OIDC with PKCE, put an API behind access tokens, federate a directory and a SAML service, broker an external provider, and diagnose a broken integration. Ends with the level exam."
-    labs: []
+    # L'ORDRE DE CETTE LISTE EST L'ORDRE PÉDAGOGIQUE, dont `dsoxlab next` tire
+    # la suite à jouer. Il n'est pas celui de la numérotation des fiches : le
+    # parcours commence par installer le fournisseur, puis y branche une
+    # application, puis une API, et ne vient à l'annuaire qu'ensuite.
+    #
+    # N'Y DÉCLARER QU'UN LAB DÉJÀ LIVRÉ. Mesuré le 2026-10-16 :
+    # `validate-structure` REFUSE un lab déclaré ici dont le `lab.yaml`
+    # n'existe pas, contrairement à ce qu'affirme le CLAUDE.md de dsoxlab. Les
+    # douze labs restants sont en commentaire au-dessus de ce bloc, dans leur
+    # ordre de jeu.
+    labs:
+      - iam-02-keycloak-installer
+      - iam-04-client-oidc-pkce
+      - iam-05-api-protegee
 
   - id: niveau-2
     title: "Level 2: run and govern"

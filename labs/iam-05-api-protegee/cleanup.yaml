@@ -1,0 +1,46 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Le socle LUI-MÊME reste debout : il est partagé par quinze labs, et le
+# remonter à chaque nettoyage coûterait trois minutes par lab pour rien. Ce qui
+# part, c'est tout ce que CE lab a posé ou fait poser : l'API, ses clients, ses
+# scopes et son compte de test.
+- name: Nettoyer le lab iam-05-api-protegee
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Arrêter l'API témoin
+      # Par le PORT, et non par la ligne de commande : l'apprenant lance l'API
+      # comme il veut, et un `pkill -f <chemin absolu>` ne trouve rien quand il
+      # l'a lancée depuis son répertoire. Mesuré le 2026-10-16.
+      ansible.builtin.command:
+        cmd: /opt/iam-lab/outils/arreter-temoin.sh 8090
+      changed_when: true
+
+    - name: Retirer les clients, les scopes et le compte de test
+      # Par le script de mise en situation, qui sait déjà obtenir un jeton
+      # d'administration. Refaire cette obtention ici en ferait deux endroits à
+      # corriger le jour où le socle changera de compte.
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer le répertoire de l'API
+      ansible.builtin.file:
+        path: /opt/iam-lab/api-notes
+        state: absent
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le port de l'API est VRAIMENT libéré
+      # Le contrôle porte sur l'ÉTAT : un processus en cours d'arrêt tient
+      # encore son port, et le lab suivant échouerait sur un « address already
+      # in use » qui ne dirait rien de lui.
+      ansible.builtin.wait_for:
+        port: 8090
+        host: 127.0.0.1
+        state: stopped
+        timeout: 30

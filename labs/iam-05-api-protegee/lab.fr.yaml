@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Protéger une API par jetons d'accès"
+description: |
+  Une API qui ne vérifie que la signature d'un jeton accepte les jetons
+  destinés à quelqu'un d'autre. Déclarez les scopes et l'audience, faites
+  vérifier les quatre revendications, et donnez à un service de sauvegarde un
+  accès machine sans utilisateur. Noté sur ce que l'API refuse : sans jeton,
+  mauvaise audience, scope absent.

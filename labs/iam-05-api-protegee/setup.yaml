@@ -1,0 +1,45 @@
+---
+# Joué par `dsoxlab run` avant d'ouvrir la session.
+#
+# Ce lab reçoit le socle IAM complet, puis l'API témoin DANS SA VERSION DE
+# DÉPART : elle ne vérifie que la signature des jetons. C'est le défaut que le
+# challenge demande de corriger, et il est délibéré.
+- name: Préparer le lab iam-05-api-protegee
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Installer le socle IAM
+      ansible.builtin.include_tasks: ../../shared/socle-iam.yml
+
+    - name: Créer le répertoire de l'API témoin
+      ansible.builtin.file:
+        path: /opt/iam-lab/api-notes
+        state: directory
+        owner: student
+        group: docker
+        # Ouvert en écriture au groupe : l'apprenant corrige le fichier sous
+        # `student`, la solution de référence l'écrit sous le compte de
+        # service `ansible`, et les deux sont dans `docker`.
+        mode: "0770"
+
+    - name: Poser l'API témoin dans sa version de départ
+      # TOUJOURS REPOSÉE, même si le fichier existe.
+      #
+      # C'est ce qui garantit le même point de départ d'un passage à l'autre :
+      # sans cela, un `dsoxlab run` joué après un travail noterait l'API
+      # corrigée au passage précédent, et la note ne dirait rien de
+      # l'apprenant.
+      ansible.builtin.copy:
+        src: fixtures/api-notes.py
+        dest: /opt/iam-lab/api-notes/api.py
+        owner: student
+        group: docker
+        mode: "0660"
+
+    - name: Poser la situation du lab
+      # La trace va dans un journal SUR la machine, avec `set -x` : dsoxlab ne
+      # rend que « non-zero return code » quand un script de mise en situation
+      # échoue, et c'est ce fichier que le validateur relit pour dire pourquoi.
+      ansible.builtin.script: fixtures/prepare.sh
+      args:
+        executable: /bin/bash

@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-05-api-protegee
+title: "Put an API behind access tokens"
+description: |
+  An API that only checks a token's signature accepts tokens meant for someone
+  else. Declare the scopes and the audience, make the API check all four
+  claims, and give a backup service machine access with no user. Graded on what
+  the API refuses: no token, wrong audience, missing scope.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: intermediate
+estimated_time: "50m"
+skills:
+  - keycloak
+  - oauth2
+  - oidc
+  - api-security
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/proteger-une-api/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # La sécurité EST le sujet : la note porte d'abord sur ce que l'API refuse.
+  security: true
+  persistence_after_reboot: false
