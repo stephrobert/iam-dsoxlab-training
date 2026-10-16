@@ -1,0 +1,41 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# L'instance de production part AVEC SES VOLUMES. Une base de 250 Mo qui
+# survivrait au nettoyage occuperait le disque, et surtout elle serait DÉJÀ
+# MIGRÉE : le lab suivant la trouverait en version cible et serait vert avant
+# tout travail. Une base migrée ne redescend pas.
+- name: Nettoyer le lab iam-09-sauvegarde-montee-version
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer l'instance de production, ses volumes et les fichiers du lab
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que l'instance de production ne répond plus
+      # Le contrôle porte sur l'ÉTAT : un conteneur qui survivrait à la
+      # suppression de son compose répondrait encore, et le port resterait
+      # pris pour le lab suivant.
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8081
+        state: stopped
+        timeout: 60
+
+    - name: Vérifier que le socle, lui, répond toujours
+      # Le lab n'a pas touché au socle, et ce contrôle le prouve plutôt que de
+      # le supposer : c'est lui que les treize autres labs utilisent.
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/realms/formation/.well-known/openid-configuration
+        status_code: [200]
+      register: socle
+      retries: 30
+      delay: 2
+      until: socle is succeeded

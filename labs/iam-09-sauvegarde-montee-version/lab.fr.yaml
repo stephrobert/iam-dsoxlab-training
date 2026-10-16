@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Sauvegarder ce qui doit l'être, monter de version, et prouver que rien n'est perdu"
+description: |
+  Sauvegarder la base d'un fournisseur en service, exporter son realm, le
+  monter d'une version mineure en changeant l'image épinglée, et prouver que le
+  realm, les comptes, les clients et la trace d'audit ont tous survécu. Noté
+  sur la sauvegarde qui se restaure dans une base vide, sur son antériorité à
+  la montée, et sur la trace toujours présente.

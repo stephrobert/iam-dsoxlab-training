@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-09-sauvegarde-montee-version
+title: "Back up what must be, upgrade, and prove nothing was lost"
+description: |
+  Back up the database of a running provider, export its realm, upgrade it one
+  minor version by changing the pinned image, and prove that the realm, the
+  accounts, the clients and the audit trail all survived. Graded on the backup
+  restoring into an empty database, on it predating the upgrade, and on the
+  trail still being there.
+section: niveau-2
+level: niveau-2
+lab_type: lab
+difficulty: advanced
+estimated_time: "60m"
+skills:
+  - keycloak
+  - postgresql
+  - sauvegarde
+  - exploitation
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/production/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Une montée sans sauvegarde antérieure est un risque assumé sans le savoir,
+  # et un export de realm pris pour une sauvegarde complète perd la trace de
+  # qui s'est connecté.
+  security: true
+  persistence_after_reboot: false

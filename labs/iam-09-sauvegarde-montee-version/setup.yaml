@@ -1,0 +1,40 @@
+---
+# Joué par `dsoxlab run` avant d'ouvrir la session.
+#
+# Les versions ne sont PAS écrites ici : elles sont lues dans
+# `shared/images.yml`, sous `keycloak_montee`, et passées au script en
+# variables d'environnement. Le couple de versions est le sujet même du lab :
+# le recopier à deux endroits serait le meilleur moyen de le faire mentir.
+- name: Préparer le lab iam-09-sauvegarde-montee-version
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Installer le socle IAM
+      ansible.builtin.include_tasks: ../../shared/socle-iam.yml
+
+    - name: Lire les versions épinglées
+      ansible.builtin.include_vars:
+        file: ../../shared/images.yml
+        name: images
+
+    - name: Poser la situation du lab
+      # La trace va dans un journal SUR la machine, avec `set -x` : dsoxlab ne
+      # rend que « non-zero return code » quand un script de mise en situation
+      # échoue, et c'est ce fichier que le validateur relit pour dire pourquoi.
+      ansible.builtin.script: fixtures/prepare.sh
+      args:
+        executable: /bin/bash
+      environment:
+        IMAGE_AVANT: >-
+          {{ images.keycloak_montee.avant.image }}:{{
+          images.keycloak_montee.avant.version }}@{{
+          images.keycloak_montee.avant.digest }}
+        IMAGE_APRES: >-
+          {{ images.keycloak_montee.apres.image }}:{{
+          images.keycloak_montee.apres.version }}@{{
+          images.keycloak_montee.apres.digest }}
+        IMAGE_PG: >-
+          {{ images.postgres.image }}:{{ images.postgres.version }}@{{
+          images.postgres.digest }}
+        VERSION_AVANT: "{{ images.keycloak_montee.avant.version }}"
+        VERSION_APRES: "{{ images.keycloak_montee.apres.version }}"

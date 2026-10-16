@@ -125,3 +125,32 @@ nginx:
   image: "docker.io/library/nginx"
   digest: "sha256:3bcf852aed06467cf075c6105892e4d5a6ebbbafa0ce22d35062db9e90ddef4c"
   releve_le: "2026-10-16"
+
+# ── Le couple de versions du lab iam-09, qui monte Keycloak ─────────────────
+#
+# RELEVÉ LE 2026-10-16 sur quay.io. Le lab pose une instance DÉDIÉE en
+# `avant` et demande de la monter en `apres`. Le socle, lui, reste sur la
+# version de `keycloak:` ci-dessus : une base migrée ne redescend pas, et
+# monter le socle laisserait les treize autres labs dans un état qu'ils n'ont
+# pas demandé.
+#
+# POURQUOI CE COUPLE : 26.7.5 est le dernier correctif de la 26.7, et 26.8.1
+# la stable au relevé. C'est donc un saut de MINEURE, celui qui migre le
+# schéma, et non un saut de correctif qui ne prouverait rien.
+#
+# CE QUE LES NOTES DE MIGRATION DE LA 26.8 ANNONCENT, et qui vaut d'être lu
+# avant de changer ce couple : au-delà de 300 000 lignes dans
+# OFFLINE_USER_SESSION, la migration automatique SAUTE la création d'un index
+# et la journalise pour application à la main. Un service qui redémarre « sans
+# erreur » peut donc avoir un index en moins. Le lab ne le reproduit pas (il
+# faudrait 300 000 sessions), mais son tutoriel le nomme.
+keycloak_montee:
+  avant:
+    version: "26.7.5"
+    image: "quay.io/keycloak/keycloak"
+    digest: "sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85"
+  apres:
+    version: "26.8.1"
+    image: "quay.io/keycloak/keycloak"
+    digest: "sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244"
+  releve_le: "2026-10-16"
