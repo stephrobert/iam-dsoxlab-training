@@ -1,0 +1,36 @@
+[project]
+name = "iam-dsoxlab-training"
+version = "0.1.0"
+description = "Labs verifiables de la formation IAM, joues par la CLI dsoxlab"
+requires-python = ">=3.12"
+dependencies = [
+  "pytest>=8.0",
+  "pytest-testinfra>=10.0",
+  "pyyaml>=6.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+exclude = [
+  # Les solutions sont CHIFFREES : ruff ne peut pas les lire, et n'a rien a y
+  # dire. Le repertoire de travail de l'apprenant n'est pas du code du depot.
+  "solution",
+  "labs/*/challenge/work",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "BLE", "SIM", "RUF", "DTZ", "PLE", "PLW", "S"]
+ignore = [
+  # Les messages d'assertion enseignent : les couper les rendrait moins lisibles.
+  "E501",
+  # `assert` est le verbe de pytest.
+  "S101",
+  # Lancer docker ou dsoxlab par leur nom depuis le PATH est le metier de ces
+  # scripts.
+  "S603", "S607",
+]
+
+[tool.pytest.ini_options]
+# Chaque lab nomme son test challenge/tests/test_functional.py : importlib
+# isole ces fichiers de meme nom par leur chemin.
+addopts = "--import-mode=importlib -p no:cacheprovider"

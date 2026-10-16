@@ -1,0 +1,11 @@
+---
+# Les collections Ansible hors `ansible.builtin` se declarent ICI.
+#
+# Le catalogue Linux a perdu du temps sur un `rc=4` qui ressemblait a un
+# probleme de reseau, cause par une collection installee par hasard sur le
+# poste de developpement : elle marchait chez son auteur et nulle part ailleurs.
+#
+# Le socle et le premier lab n'emploient que `ansible.builtin`. Cette liste
+# reste donc vide, et c'est une information : toute collection ajoutee plus
+# tard doit y figurer.
+collections: []

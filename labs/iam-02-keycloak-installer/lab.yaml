@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-02-keycloak-installer
+title: "Install Keycloak with its database"
+description: |
+  Run Keycloak in a minimal production setup, backed by PostgreSQL, with a
+  named administrator that is not the bootstrap account. Graded on what the
+  server actually serves: its health endpoint, the database it really uses,
+  and whether the realm survives a restart.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: intermediate
+estimated_time: "40m"
+skills:
+  - keycloak
+  - postgresql
+  - docker-compose
+  - oidc
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/installation/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  security: false
+  # Le realm doit survivre au redémarrage des conteneurs, ce qui est la
+  # persistance que ce lab enseigne : une base embarquée la perdrait.
+  persistence_after_reboot: true

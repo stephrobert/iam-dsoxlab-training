@@ -1,0 +1,8 @@
+# Surcharges françaises : `title` et `description` seulement. Tout autre champ
+# y serait ignoré en silence.
+title: "Installer Keycloak avec sa base de données"
+description: |
+  Faire tourner Keycloak en mode production minimal, adossé à PostgreSQL, avec
+  un administrateur nominatif qui n'est pas le compte de démarrage. La note
+  porte sur ce que le serveur rend vraiment : son point de santé, la base qu'il
+  utilise réellement, et la survie du realm à un redémarrage.

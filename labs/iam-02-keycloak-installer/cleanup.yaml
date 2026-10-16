@@ -1,0 +1,57 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Ce lab installe des conteneurs, une base et des volumes. Tout part, volumes
+# compris : une base qui survivrait porterait le realm « formation » que le lab
+# suivant trouverait déjà créé, et son propre test de création serait vert sans
+# rien faire.
+- name: Nettoyer le lab iam-02-keycloak-installer
+  hosts: lab_target
+  become: true
+  vars:
+    travail: /opt/keycloak-lab
+  tasks:
+    - name: Arrêter ce que l'apprenant a monté, volumes compris
+      # `failed_when: false` parce que le répertoire peut ne porter aucun
+      # Compose : un apprenant qui n'a rien écrit laisse un lab propre, et le
+      # nettoyage ne doit pas échouer pour cela.
+      ansible.builtin.command:
+        cmd: docker compose down -v --remove-orphans
+        chdir: "{{ travail }}"
+      changed_when: true
+      failed_when: false
+
+    - name: Retirer les conteneurs Keycloak qu'aucun Compose ne reprendrait
+      # Un `docker run` lancé à la main pendant une recherche échappe au
+      # Compose. Le filtre porte sur l'IMAGE, donc il attrape aussi un
+      # conteneur renommé.
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          ids=$(docker ps -aq --filter 'ancestor=quay.io/keycloak/keycloak')
+          [ -n "$ids" ] && docker rm -f $ids || true
+        executable: /bin/bash
+      changed_when: true
+      failed_when: false
+
+    - name: Retirer le répertoire de travail
+      ansible.builtin.file:
+        path: "{{ travail }}"
+        state: absent
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que rien n'écoute plus sur les ports du lab
+      # Le contrôle porte sur l'ÉTAT, pas sur le fait que les commandes
+      # précédentes ont rendu 0 : un conteneur en cours d'arrêt tient encore
+      # son port, et le lab suivant échouerait sur un « address already in
+      # use » qui ne dirait rien de lui.
+      ansible.builtin.wait_for:
+        port: "{{ item }}"
+        host: 127.0.0.1
+        state: stopped
+        timeout: 60
+      loop: [8080, 9000]
