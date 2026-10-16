@@ -1,0 +1,8 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Exiger un second facteur, de certains seulement"
+description: |
+  Exiger un second facteur de l'équipe d'exploitation et de personne d'autre,
+  proposer une option résistante au hameçonnage, et mettre la politique de mot
+  de passe en accord avec NIST SP 800-63B-4. Noté par deux connexions qui
+  doivent se terminer différemment, et sur le flux par défaut laissé intact.

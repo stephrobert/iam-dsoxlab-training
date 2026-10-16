@@ -1,0 +1,55 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Le flux de navigateur du realm revient à celui de Keycloak, et les flux copiés
+# partent. C'est le point qui compte le plus : un realm dont le flux exige
+# encore un second facteur ferait échouer TOUS les labs suivants, et le
+# diagnostic partirait dans leur configuration.
+- name: Nettoyer le lab iam-07-mfa-keycloak
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Remettre le realm dans son état, et retirer les objets du lab
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le flux de navigateur est bien celui de Keycloak
+      # Le contrôle porte sur l'ÉTAT du realm, pas sur le code de retour du
+      # nettoyage : un flux resté actif casserait les labs suivants.
+      ansible.builtin.shell:
+        cmd: |
+          set -u
+          u=$(grep '^KC_BOOTSTRAP_ADMIN_USERNAME=' /opt/socle-iam/.env | cut -d= -f2-)
+          p=$(grep '^KC_BOOTSTRAP_ADMIN_PASSWORD=' /opt/socle-iam/.env | cut -d= -f2-)
+          jeton=$(curl -sS --max-time 20 -X POST \
+            http://127.0.0.1:8080/realms/master/protocol/openid-connect/token \
+            -d grant_type=password -d client_id=admin-cli \
+            -d "username=$u" -d "password=$p" | jq -r '.access_token // empty')
+          curl -sS --max-time 30 http://127.0.0.1:8080/admin/realms/formation \
+            -H "Authorization: Bearer $jeton" \
+            | jq -r '"\(.browserFlow)|\(if (.passwordPolicy // "") == "" then "aucune" else .passwordPolicy end)"'
+        executable: /bin/bash
+      register: etat_realm
+      changed_when: false
+
+    - name: Refuser de conclure si le realm reste durci
+      ansible.builtin.assert:
+        that:
+          - etat_realm.stdout | trim == 'browser|aucune'
+        fail_msg: >-
+          Le realm n'est pas revenu dans son état :
+          {{ etat_realm.stdout | trim }} au lieu de « browser|aucune ». Les labs
+          suivants échoueraient sur une exigence qu'ils n'ont pas posée.
+
+    - name: Vérifier que le port du témoin est libéré
+      ansible.builtin.wait_for:
+        port: 9080
+        host: 127.0.0.1
+        state: stopped
+        timeout: 30

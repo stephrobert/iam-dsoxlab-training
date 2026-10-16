@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-07-mfa-keycloak
+title: "Require a second factor, for some people only"
+description: |
+  Demand a second factor from the operations team and from nobody else, offer a
+  phishing-resistant option, and bring the password policy in line with NIST SP
+  800-63B-4. Graded by two sign-ins that must end differently, and on the
+  default flow being left untouched.
+section: niveau-2
+level: niveau-2
+lab_type: lab
+difficulty: advanced
+estimated_time: "45m"
+skills:
+  - keycloak
+  - mfa
+  - webauthn
+  - authentification
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/mfa-flows/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Le lab porte sur une exigence de sécurité, et sur le fait de ne pas
+  # l'imposer à tout le monde sans recours.
+  security: true
+  persistence_after_reboot: false
