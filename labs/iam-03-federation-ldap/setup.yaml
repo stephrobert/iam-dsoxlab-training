@@ -1,0 +1,20 @@
+---
+# Joué par `dsoxlab run` avant d'ouvrir la session.
+#
+# Ce lab suppose un annuaire PEUPLÉ, c'est-à-dire le résultat du lab 01. Les
+# labs se jouant dans n'importe quel ordre, son script de mise en situation le
+# remplit lui-même, avec les mêmes personnes et les mêmes groupes.
+- name: Préparer le lab iam-03-federation-ldap
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Installer le socle IAM
+      ansible.builtin.include_tasks: ../../shared/socle-iam.yml
+
+    - name: Poser la situation du lab
+      # La trace va dans un journal SUR la machine, avec `set -x` : dsoxlab ne
+      # rend que « non-zero return code » quand un script de mise en situation
+      # échoue, et c'est ce fichier que le validateur relit pour dire pourquoi.
+      ansible.builtin.script: fixtures/prepare.sh
+      args:
+        executable: /bin/bash

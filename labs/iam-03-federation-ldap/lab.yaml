@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-03-federation-ldap
+title: "Federate a directory into the provider"
+description: |
+  Teach Keycloak to read the directory instead of holding its own copy of
+  everyone. Declare the federation read only, map the groups, synchronise, and
+  sign in with an account the provider never created. Graded on the import that
+  really happened and on the write the provider must refuse.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: intermediate
+estimated_time: "40m"
+skills:
+  - keycloak
+  - ldap
+  - federation
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/federation-ldap/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Le mode lecture seule EST le sujet : une fédération en écriture laisserait
+  # le fournisseur modifier l'annuaire, qui est la source.
+  security: true
+  persistence_after_reboot: false

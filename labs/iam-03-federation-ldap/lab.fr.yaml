@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Fédérer un annuaire dans le fournisseur"
+description: |
+  Apprendre à Keycloak à lire l'annuaire au lieu de garder sa propre copie de
+  tout le monde. Déclarer la fédération en lecture seule, projeter les groupes,
+  synchroniser, et se connecter avec un compte que le fournisseur n'a jamais
+  créé. Noté sur l'import qui a vraiment eu lieu et sur l'écriture que le
+  fournisseur doit refuser.

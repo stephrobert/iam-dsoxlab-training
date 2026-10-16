@@ -1,0 +1,55 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Trois choses partent, et chacune pour une raison :
+#
+#   la fédération        elle emporte les comptes qu'elle a importés, qui
+#                        n'existent dans Keycloak que par elle
+#   les groupes importés ils SURVIVENT au retrait de la fédération, étant des
+#                        groupes Keycloak ordinaires une fois créés. Les
+#                        laisser rendrait vert un test d'appartenance sur un
+#                        groupe hérité
+#   les comptes LDAP     posés par le setup, ils doivent repartir pour que le
+#                        lab suivant trouve l'annuaire tel qu'il l'attend
+- name: Nettoyer le lab iam-03-federation-ldap
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer la fédération, les groupes et les comptes
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le realm ne connaît plus aucun compte fédéré
+      # Le contrôle porte sur l'ÉTAT du fournisseur, pas sur le code de retour
+      # du nettoyage : un compte fédéré qui survivrait rendrait le lab suivant
+      # vert sans travail.
+      ansible.builtin.shell:
+        cmd: |
+          set -u
+          u=$(grep '^KC_BOOTSTRAP_ADMIN_USERNAME=' /opt/socle-iam/.env | cut -d= -f2-)
+          p=$(grep '^KC_BOOTSTRAP_ADMIN_PASSWORD=' /opt/socle-iam/.env | cut -d= -f2-)
+          jeton=$(curl -sS --max-time 20 -X POST \
+            http://127.0.0.1:8080/realms/master/protocol/openid-connect/token \
+            -d grant_type=password -d client_id=admin-cli \
+            -d "username=$u" -d "password=$p" | jq -r '.access_token // empty')
+          curl -sS --max-time 30 \
+            'http://127.0.0.1:8080/admin/realms/formation/users?briefRepresentation=true' \
+            -H "Authorization: Bearer $jeton" | jq 'length'
+        executable: /bin/bash
+      register: comptes_du_realm
+      changed_when: false
+
+    - name: Refuser de conclure si un compte survit dans le realm
+      ansible.builtin.assert:
+        that:
+          - comptes_du_realm.stdout | trim | int == 0
+        fail_msg: >-
+          Le realm « formation » connaît encore
+          {{ comptes_du_realm.stdout | trim }} compte(s). La fédération a-t-elle
+          bien été retirée ? Les comptes importés disparaissent avec elle.
