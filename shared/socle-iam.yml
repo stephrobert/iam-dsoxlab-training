@@ -1,0 +1,243 @@
+---
+# La couche IAM du socle : Keycloak, sa base PostgreSQL, et l'annuaire LLDAP.
+#
+# Incluse par le `setup.yaml` de TOUS les labs SAUF
+# `iam-02-keycloak-installer`, dont le sujet est d'écrire ce montage. Elle
+# inclut elle-même `machine-docker.yml` : un lab n'a qu'un `include_tasks` à
+# écrire.
+#
+# CE QUE LE SOCLE POSE, ET CE QU'IL LAISSE AUX LABS
+#
+# Il monte les SERVICES, et crée le realm `formation` qui leur est commun. Il
+# ne configure rien au-delà : ni client, ni fédération, ni compte d'annuaire.
+#
+# Ce partage n'est pas une commodité, c'est une nécessité. `iam-01` a pour
+# sujet « monter un annuaire et y organiser les comptes » : un socle qui
+# peuplerait LLDAP lui retirerait son objet, exactement comme un socle qui
+# monterait Keycloak retirerait le sien à `iam-02`. Chaque lab pose donc SA
+# situation dans son propre setup.
+#
+# LES SECRETS SONT GÉNÉRÉS, ET PERSISTÉS SUR LA MACHINE
+#
+# Aucun mot de passe n'est écrit dans le dépôt. Ils sont tirés au hasard au
+# premier passage et gardés dans un fichier d'environnement sur la machine, à
+# lecture restreinte. Les rejouer ne les change pas : un socle qui
+# régénérerait ses secrets à chaque passage casserait les clients que les labs
+# ont déjà déclarés.
+
+- name: Installer la couche machine
+  ansible.builtin.include_tasks: machine-docker.yml
+
+- name: Lire les versions et les digests du socle
+  # Les versions vivent dans `shared/images.yml`, une seule fois, avec la date
+  # de leur relevé. Les recopier ici les ferait diverger au premier oubli.
+  ansible.builtin.include_vars:
+    file: images.yml
+    name: socle_images
+
+- name: Créer le répertoire du socle
+  ansible.builtin.file:
+    path: /opt/socle-iam
+    state: directory
+    owner: ansible
+    group: docker
+    mode: "0750"
+
+- name: Les secrets du socle existent-ils déjà ?
+  # La question porte sur le fichier de SECRETS, pas sur les conteneurs : c'est
+  # lui qui décide s'il faut en tirer de nouveaux.
+  ansible.builtin.stat:
+    path: /opt/socle-iam/secrets.yml
+  register: secrets_du_socle
+
+- name: Tirer les secrets, au premier passage seulement
+  # `lookup('password')` rend une valeur NEUVE à chaque évaluation. S'en servir
+  # sans garde réécrirait le fichier à chaque passage, et les clients OIDC que
+  # les labs ont déclarés cesseraient de s'authentifier contre une base dont le
+  # mot de passe a changé sous eux.
+  #
+  # En YAML, et non en `.env` : `from_yaml` le relit nativement, là où
+  # reconstruire un dictionnaire depuis un `.env` à coups de `split` et de
+  # `dict()` échoue, `dict()` de Jinja n'acceptant pas une liste de paires.
+  when: not secrets_du_socle.stat.exists
+  ansible.builtin.copy:
+    dest: /opt/socle-iam/secrets.yml
+    owner: ansible
+    group: docker
+    mode: "0640"
+    content: |
+      # Généré par shared/socle-iam.yml au premier passage. Jamais versionné.
+      # Le .env que Compose lit en dérive : une seule source, deux formats.
+      DB_PASSWORD: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+      KC_BOOTSTRAP_ADMIN_USERNAME: "temp-admin"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "{{ lookup('password', '/dev/null length=24 chars=ascii_letters,digits') }}"
+      LLDAP_JWT_SECRET: "{{ lookup('password', '/dev/null length=48 chars=ascii_letters,digits') }}"
+      LLDAP_KEY_SEED: "{{ lookup('password', '/dev/null length=48 chars=ascii_letters,digits') }}"
+      LLDAP_ADMIN_PASSWORD: "{{ lookup('password', '/dev/null length=24 chars=ascii_letters,digits') }}"
+      LLDAP_BASE_DN: "dc=formation,dc=lab"
+
+- name: Retirer les données chiffrées avec les anciens secrets
+  # DES SECRETS NEUFS EXIGENT DES DONNÉES NEUVES.
+  #
+  # LLDAP chiffre les mots de passe de ses comptes avec une clé dérivée de
+  # `LLDAP_KEY_SEED`. Si la graine change alors que son volume survit, il
+  # REFUSE de démarrer, et il a raison de refuser :
+  #
+  #   The private key encoding the passwords has changed since last successful
+  #   startup. Changing the private key will invalidate all existing passwords.
+  #
+  # Mesuré le 2026-10-16. Le remède que LLDAP propose,
+  # `LLDAP_FORCE_UPDATE_PRIVATE_KEY=true`, invaliderait tous les mots de passe
+  # en silence : c'est exactement ce qu'il ne faut pas poser par défaut dans un
+  # catalogue, où un lab suivant les croirait valides.
+  #
+  # On retire donc les volumes quand les secrets viennent d'être tirés. Cela
+  # n'arrive qu'au premier passage, ou après une suppression délibérée de
+  # `secrets.yml` : dans les deux cas, il n'y a rien à conserver.
+  when: not secrets_du_socle.stat.exists
+  block:
+    - name: Arrêter le socle et retirer ses volumes
+      ansible.builtin.command:
+        cmd: docker compose --env-file .env down -v --remove-orphans
+        chdir: /opt/socle-iam
+      become: false
+      changed_when: true
+      failed_when: false
+
+- name: Relire les secrets
+  ansible.builtin.slurp:
+    src: /opt/socle-iam/secrets.yml
+  register: secrets_bruts
+
+- name: Les tenir en variable
+  ansible.builtin.set_fact:
+    socle_env: "{{ secrets_bruts.content | b64decode | from_yaml }}"
+  no_log: true
+
+- name: Dériver le fichier d'environnement que Compose lit
+  # Les images y sont jointes aux secrets : une montée de version du socle
+  # atteint ainsi une machine déjà provisionnée sans toucher à ses secrets.
+  ansible.builtin.copy:
+    dest: /opt/socle-iam/.env
+    owner: ansible
+    group: docker
+    mode: "0640"
+    content: |
+      # Dérivé de secrets.yml par shared/socle-iam.yml. Jamais versionné.
+      IMAGE_KEYCLOAK={{ socle_images.keycloak.image }}:{{ socle_images.keycloak.version }}@{{ socle_images.keycloak.digest }}
+      IMAGE_POSTGRES={{ socle_images.postgres.image }}:{{ socle_images.postgres.version }}@{{ socle_images.postgres.digest }}
+      IMAGE_LLDAP={{ socle_images.lldap.image }}:{{ socle_images.lldap.version }}@{{ socle_images.lldap.digest }}
+      DB_PASSWORD={{ socle_env.DB_PASSWORD }}
+      KC_BOOTSTRAP_ADMIN_USERNAME={{ socle_env.KC_BOOTSTRAP_ADMIN_USERNAME }}
+      KC_BOOTSTRAP_ADMIN_PASSWORD={{ socle_env.KC_BOOTSTRAP_ADMIN_PASSWORD }}
+      LLDAP_JWT_SECRET={{ socle_env.LLDAP_JWT_SECRET }}
+      LLDAP_KEY_SEED={{ socle_env.LLDAP_KEY_SEED }}
+      LLDAP_ADMIN_PASSWORD={{ socle_env.LLDAP_ADMIN_PASSWORD }}
+      LLDAP_BASE_DN={{ socle_env.LLDAP_BASE_DN }}
+  no_log: true
+
+- name: Poser le fichier Compose du socle
+  ansible.builtin.copy:
+    src: compose-socle.yaml
+    dest: /opt/socle-iam/compose.yaml
+    owner: ansible
+    group: docker
+    mode: "0640"
+
+- name: Démarrer le socle
+  # `--wait` attend les sondes de santé déclarées dans le Compose, ce qui vaut
+  # mieux qu'un `sleep` : la durée de démarrage de Keycloak varie du simple au
+  # triple selon que la base est neuve ou déjà peuplée.
+  ansible.builtin.command:
+    cmd: docker compose --env-file .env up -d --wait --wait-timeout 300
+    chdir: /opt/socle-iam
+  become: false
+  register: montee_du_socle
+  changed_when: "'Started' in montee_du_socle.stderr or 'Created' in montee_du_socle.stderr"
+
+- name: Vérifier que Keycloak est VRAIMENT prêt, par son port de gestion
+  # Le `--wait` ci-dessus croit la sonde du Compose. On interroge donc le port
+  # de gestion depuis la machine, ce qui est le contrôle que les tests des labs
+  # feront eux aussi : « le conteneur est démarré » n'est pas « le service
+  # répond ».
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9000/health/ready
+    return_content: true
+  register: sante_keycloak
+  retries: 30
+  delay: 5
+  until: sante_keycloak.status == 200 and (sante_keycloak.json.status | default('')) == 'UP'
+
+- name: Obtenir un jeton d'administration
+  # L'API d'administration est la seule façon honnête de vérifier et de
+  # configurer Keycloak : la console web ne se scripte pas, et lire les
+  # fichiers du conteneur ne dirait rien de ce que le serveur a compris.
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8080/realms/master/protocol/openid-connect/token
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ socle_env.KC_BOOTSTRAP_ADMIN_USERNAME }}"
+      password: "{{ socle_env.KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+  register: jeton_admin
+  no_log: true
+  retries: 10
+  delay: 5
+  until: jeton_admin.status == 200
+
+- name: Le realm « formation » existe-t-il déjà ?
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8080/admin/realms/formation
+    headers:
+      Authorization: "Bearer {{ jeton_admin.json.access_token }}"
+    status_code: [200, 404]
+  register: realm_existant
+  no_log: true
+
+- name: Créer le realm « formation », vide
+  # Vide, et c'est voulu : ni client, ni rôle, ni utilisateur. Chaque lab pose
+  # sa situation, et un socle qui livrerait un realm déjà garni retirerait aux
+  # labs ce qu'ils demandent de construire.
+  #
+  # « VIDE » NE VEUT PAS DIRE « SANS CLIENT », ET TOUT TEST DOIT LE SAVOIR.
+  #
+  # Mesuré le 2026-10-16 sur ce realm à la sortie du socle : zéro utilisateur,
+  # mais SIX clients. Keycloak en crée toujours six dans un realm neuf :
+  # `account`, `account-console`, `admin-cli`, `broker`, `realm-management` et
+  # `security-admin-console`.
+  #
+  # Un test qui compterait les clients d'un realm pour vérifier que l'apprenant
+  # en a déclaré un serait donc VERT AVANT LE TRAVAIL. C'est le même piège que
+  # le catalogue Kubernetes a payé avec le volume `kube-api-access-xxxxx` que
+  # Kubernetes projette de lui-même dans chaque Pod : la plateforme pose des
+  # objets que personne n'a demandés, et les compter ne mesure rien.
+  #
+  # Un test cherche donc le client PAR SON identifiant, jamais par un
+  # dénombrement.
+  when: realm_existant.status == 404
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8080/admin/realms
+    method: POST
+    headers:
+      Authorization: "Bearer {{ jeton_admin.json.access_token }}"
+    body_format: json
+    body:
+      realm: formation
+      enabled: true
+      displayName: "Formation IAM"
+    status_code: [201]
+  no_log: true
+
+- name: Dire ce que le socle a monté
+  # Le relevé de validation porte les versions réellement jouées. Les secrets
+  # n'y figurent pas : ce message va dans les journaux, que `dsoxlab support`
+  # collecte.
+  ansible.builtin.debug:
+    msg: >-
+      Socle IAM prêt : Keycloak {{ socle_images.keycloak.version }},
+      PostgreSQL {{ socle_images.postgres.version }},
+      LLDAP {{ socle_images.lldap.version }}.
+      Realm « formation »
+      {{ 'créé' if realm_existant.status == 404 else 'déjà présent' }}.

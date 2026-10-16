@@ -1,0 +1,147 @@
+# Le socle commun du catalogue : Keycloak, sa base, et l'annuaire.
+#
+# Posé par `shared/socle-iam.yml` sur `idp.lab`, et inclus par le `setup.yaml`
+# de tous les labs SAUF `iam-02-keycloak-installer`, dont le sujet est
+# justement d'écrire ce fichier.
+#
+# CE QUI N'EST PAS ICI, ET POURQUOI
+#
+# Pas de reverse proxy, pas de TLS, pas de `KC_HOSTNAME` derrière un port
+# publié : c'est le sujet de `iam-09-sauvegarde-montee-version`, qui porte sur
+# l'exploitation en production. Un socle qui le fournirait priverait ce lab de
+# son objet. Les essais de la leçon « production » montrent le montage complet,
+# avec Caddy et deux noms d'hôte distincts, et c'est là qu'il appartient.
+#
+# Keycloak écoute donc en HTTP sur la machine, derrière son pare-feu de VM, ce
+# qui est exactement la situation que la leçon d'installation décrit avant
+# d'aborder la mise en production.
+#
+# LES VERSIONS NE SONT PAS ÉCRITES ICI
+#
+# Elles viennent de `shared/images.yml`, qui les porte une seule fois avec leur
+# digest et la date du relevé. Le playbook substitue les variables ci-dessous :
+# une valeur recopiée dans deux fichiers finit toujours par diverger.
+#
+# AUCUN SECRET EN DUR
+#
+# `${...}` est lu dans le fichier d'environnement que le playbook GÉNÈRE sur la
+# machine, jamais versionné. Les essais des leçons utilisent `admin/admin`, ce
+# qui convient à un essai jetable et pas à un lab que l'on publie.
+
+name: socle-iam
+
+services:
+  db:
+    image: ${IMAGE_POSTGRES}
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # Le jeu de caractères que la documentation de Keycloak recommande pour
+      # PostgreSQL. Sans lui, la base prend la locale de l'image et un realm
+      # dont un nom porte un accent se compare autrement qu'on l'attend.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    volumes:
+      # SUR /var/lib/postgresql, ET NON SUR SON SOUS-REPERTOIRE /data.
+      #
+      # L'image PostgreSQL 18 a change cela, et le compose des essais, qui
+      # tourne sur 16, porte encore l'ancien montage. Mesure le 2026-10-16 :
+      # avec `/var/lib/postgresql/data`, le conteneur redemarre en boucle et
+      # dit pourquoi, « in 18+, these Docker images are configured to store
+      # database data in a format which is compatible with pg_ctlcluster
+      # (specifically, using major-version-specific directory names) ».
+      #
+      # Les donnees vont donc dans un sous-repertoire nomme par la majeure,
+      # ce qui permet `pg_upgrade --link` sans franchir une frontiere de
+      # point de montage. C'est utile au lab de montee de version, qui porte
+      # precisement la-dessus.
+      #
+      # La lecon est plus generale : verifier qu'une version est SUPPORTEE ne
+      # dit rien de ce qui a change en y passant.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      # `pg_isready` répond avant que la base accepte réellement des
+      # connexions applicatives, mais il répond sur la BASE nommée : c'est la
+      # sonde que Keycloak attend, et le compose des essais l'utilise telle
+      # quelle.
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  keycloak:
+    image: ${IMAGE_KEYCLOAK}
+    # `start`, pas `start-dev` : le mode production, avec la base externe. Le
+    # mode de développement embarque une base en fichier et perd tout au
+    # redémarrage, ce qu'un test du lab 02 vérifie précisément.
+    command: start --optimized=false
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      # HTTP assumé : voir l'en-tête de ce fichier. Le TLS est le sujet d'un
+      # lab, pas du socle.
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      # La santé et les métriques vivent sur le port de GESTION, 9000, et non
+      # sur celui de l'application. Plusieurs tests du catalogue y lisent
+      # l'état de Keycloak, et c'est aussi ce que la fiche du lab 02 demande
+      # de vérifier.
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      # Les noms exacts de ces deux variables ont été relevés dans le compose
+      # réellement joué des essais « production » : ils ont changé au fil des
+      # versions de Keycloak, et la fiche du lab 02 demandait de les vérifier
+      # pour la version en cours.
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+    ports:
+      - "8080:8080"
+      - "9000:9000"
+    depends_on:
+      db:
+        # `service_healthy` et non `service_started` : Keycloak qui démarre
+        # contre une base qui n'accepte pas encore de connexion abandonne au
+        # lieu de réessayer, et le conteneur sort en erreur. C'est la raison
+        # pour laquelle le socle refuse un Compose v1, qui ne comprend pas
+        # cette condition.
+        condition: service_healthy
+    healthcheck:
+      # Keycloak ne porte ni curl ni wget dans son image. Son propre shell de
+      # commandes est la seule sonde disponible depuis l'intérieur, et
+      # `/health/ready` du port de gestion est ce qu'il expose.
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000
+          && printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3
+          && grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  lldap:
+    image: ${IMAGE_LLDAP}
+    environment:
+      LLDAP_JWT_SECRET: ${LLDAP_JWT_SECRET}
+      LLDAP_KEY_SEED: ${LLDAP_KEY_SEED}
+      LLDAP_LDAP_BASE_DN: ${LLDAP_BASE_DN}
+      LLDAP_LDAP_USER_PASS: ${LLDAP_ADMIN_PASSWORD}
+      # L'annuaire reste en SQLite : il porte quelques dizaines de comptes de
+      # démonstration, et lui donner PostgreSQL ajouterait un service sans rien
+      # enseigner de plus.
+      LLDAP_DATABASE_URL: "sqlite:///data/users.db?mode=rwc"
+    volumes:
+      - lldapdata:/data
+    ports:
+      - "3890:3890"
+      - "17170:17170"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  lldapdata:
