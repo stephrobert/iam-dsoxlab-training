@@ -24,7 +24,7 @@ import base64
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -63,10 +63,13 @@ def idp():
 
 def _identifiants(hote) -> dict[str, str]:
     fichier = hote.file(IDENTIFIANTS)
-    assert fichier.exists, (
-        f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
+    assert fichier.exists, message(
+        en=f"{IDENTIFIANTS} is missing. The lab's setup did not run, or its "
+        "staging script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
         "script de mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -93,9 +96,11 @@ def _chercher(hote, base: str, filtre: str, *attributs: str) -> str:
         f"-w {identifiants['ADMIN_MOT_DE_PASSE']!r} "
         f"-b {base!r} -LLL {filtre!r} {demandes}"
     )
-    assert res.rc in (0, 4), (
-        f"La requête LDAP a échoué (rc={res.rc}). L'annuaire répond-il ? "
-        f"Sortie : {(res.stdout + res.stderr)[:400]}"
+    assert res.rc in (0, 4), message(
+        en=f"The LDAP query failed (rc={res.rc}). Is the directory answering? "
+        f"Output: {(res.stdout + res.stderr)[:400]}",
+        fr=f"La requête LDAP a échoué (rc={res.rc}). L'annuaire répond-il ? "
+        f"Sortie : {(res.stdout + res.stderr)[:400]}",
     )
     return res.stdout
 
@@ -160,13 +165,17 @@ def test_l_annuaire_repond_et_le_compte_d_administration_se_lie(idp):
         f"-D {identifiants['ADMIN_DN']!r} "
         f"-w {identifiants['ADMIN_MOT_DE_PASSE']!r}"
     )
-    assert res.rc == 0, (
-        f"Le compte d'administration ne se lie pas à l'annuaire (rc={res.rc}). "
-        f"Sortie : {(res.stdout + res.stderr)[:300]}"
+    assert res.rc == 0, message(
+        en=f"The administration account does not bind to the directory (rc={res.rc}). "
+        f"Output: {(res.stdout + res.stderr)[:300]}",
+        fr=f"Le compte d'administration ne se lie pas à l'annuaire (rc={res.rc}). "
+        f"Sortie : {(res.stdout + res.stderr)[:300]}",
     )
-    assert identifiants["ADMIN_DN"] in res.stdout, (
-        f"La liaison réussit mais l'annuaire rend une identité inattendue : "
-        f"{res.stdout.strip()[:200]}"
+    assert identifiants["ADMIN_DN"] in res.stdout, message(
+        en=f"The bind succeeds but the directory returns an unexpected identity: "
+        f"{res.stdout.strip()[:200]}",
+        fr=f"La liaison réussit mais l'annuaire rend une identité inattendue : "
+        f"{res.stdout.strip()[:200]}",
     )
 
 
@@ -185,22 +194,29 @@ def test_chaque_personne_existe_avec_son_nom_et_son_adresse(idp, compte):
     base = _base(idp)
     sortie = _chercher(idp, f"ou=people,{base}", f"(uid={compte})", "cn", "mail", "sn")
 
-    assert f"uid={compte},ou=people,{base}" in sortie, (
-        f"Le compte « {compte} » n'existe pas sous ou=people,{base}. LLDAP "
+    assert f"uid={compte},ou=people,{base}" in sortie, message(
+        en=f"The account \"{compte}\" does not exist under ou=people,{base}. LLDAP "
+        "requires that branch: it does not accept an organisational unit you "
+        "would have created elsewhere.",
+        fr=f"Le compte « {compte} » n'existe pas sous ou=people,{base}. LLDAP "
         "impose cette branche : il n'accepte pas d'unité d'organisation que "
-        "vous auriez créée ailleurs."
+        "vous auriez créée ailleurs.",
     )
 
     noms = _valeurs(sortie, "cn")
-    assert nom_attendu in noms, (
-        f"Le compte « {compte} » n'a pas « {nom_attendu} » comme nom affiché "
-        f"(cn lu : {noms}). C'est ce que le fournisseur d'identité affichera."
+    assert nom_attendu in noms, message(
+        en=f"The account \"{compte}\" does not have \"{nom_attendu}\" as its display name "
+        f"(cn read: {noms}). That is what the identity provider will show.",
+        fr=f"Le compte « {compte} » n'a pas « {nom_attendu} » comme nom affiché "
+        f"(cn lu : {noms}). C'est ce que le fournisseur d'identité affichera.",
     )
 
     adresses = _valeurs(sortie, "mail")
-    assert adresse_attendue in adresses, (
-        f"Le compte « {compte} » n'a pas « {adresse_attendue} » comme adresse "
-        f"(mail lu : {adresses})."
+    assert adresse_attendue in adresses, message(
+        en=f"The account \"{compte}\" does not have \"{adresse_attendue}\" as its address "
+        f"(mail read: {adresses}).",
+        fr=f"Le compte « {compte} » n'a pas « {adresse_attendue} » comme adresse "
+        f"(mail lu : {adresses}).",
     )
 
 
@@ -222,27 +238,37 @@ def test_chaque_groupe_existe_avec_exactement_ses_membres(idp, groupe):
     sortie = _chercher(
         idp, f"ou=groups,{base}", f"(cn={groupe})", "member", "uniqueMember"
     )
-    assert f"cn={groupe},ou=groups,{base}" in sortie, (
-        f"Le groupe « {groupe} » n'existe pas sous ou=groups,{base}."
+    assert f"cn={groupe},ou=groups,{base}" in sortie, message(
+        en=f"The group \"{groupe}\" does not exist under ou=groups,{base}.",
+        fr=f"Le groupe « {groupe} » n'existe pas sous ou=groups,{base}.",
     )
 
     membres = set(_valeurs(sortie, "member")) | set(_valeurs(sortie, "uniquemember"))
 
     manquants = attendus - membres
-    assert not manquants, (
-        f"Le groupe « {groupe} » ne contient pas {sorted(manquants)}.\n\n"
+    assert not manquants, message(
+        en=f"The group \"{groupe}\" does not contain {sorted(manquants)}.\n\n"
+        "CAREFUL, this is the lab's trap: LLDAP ACCEPTS an `ldapadd` of a "
+        "group declaring `member:`, and IGNORES that member silently. An "
+        "`ldapmodify add: member` is refused with \"Invalid DN syntax\". "
+        "Membership is set through the directory's API. "
+        f"Members read: {sorted(membres)}",
+        fr=f"Le groupe « {groupe} » ne contient pas {sorted(manquants)}.\n\n"
         "ATTENTION, c'est le piège de ce lab : LLDAP ACCEPTE un `ldapadd` de "
         "groupe qui déclare `member:`, et IGNORE ce membre en silence. Un "
         "`ldapmodify add: member` est refusé avec « Invalid DN syntax ». "
         "L'appartenance se pose par l'API de l'annuaire. "
-        f"Membres lus : {sorted(membres)}"
+        f"Membres lus : {sorted(membres)}",
     )
 
     en_trop = membres - attendus
-    assert not en_trop, (
-        f"Le groupe « {groupe} » contient en plus {sorted(en_trop)}. Un droit "
+    assert not en_trop, message(
+        en=f"The group \"{groupe}\" also contains {sorted(en_trop)}. A right "
+        "granted to someone who never asked for it is exactly what an access "
+        "review looks for months later.",
+        fr=f"Le groupe « {groupe} » contient en plus {sorted(en_trop)}. Un droit "
         "accordé à quelqu'un qui ne l'a pas demandé est exactement ce qu'une "
-        "revue d'accès cherche des mois plus tard."
+        "revue d'accès cherche des mois plus tard.",
     )
 
 
@@ -267,10 +293,13 @@ def test_l_appartenance_se_lit_aussi_depuis_le_compte(idp):
             valeur.split(",")[0].removeprefix("cn=")
             for valeur in _valeurs(sortie, "memberOf")
         }
-        assert lus == groupes_attendus, (
-            f"Le compte « {compte} » appartient à {sorted(lus)} au lieu de "
+        assert lus == groupes_attendus, message(
+            en=f"The account \"{compte}\" belongs to {sorted(lus)} instead of "
+            f"{sorted(groupes_attendus)}. It is `memberOf` that the identity "
+            "provider will read to import the groups.",
+            fr=f"Le compte « {compte} » appartient à {sorted(lus)} au lieu de "
             f"{sorted(groupes_attendus)}. C'est `memberOf` que le fournisseur "
-            "d'identité lira pour importer les groupes."
+            "d'identité lira pour importer les groupes.",
         )
 
 
@@ -291,9 +320,11 @@ def test_un_filtre_sur_l_appartenance_rend_les_bonnes_personnes(idp):
         "uid",
     )
     trouves = set(_valeurs(sortie, "uid"))
-    assert trouves == GROUPES["devops"], (
-        f"Le filtre sur l'appartenance à « devops » rend {sorted(trouves)} au "
-        f"lieu de {sorted(GROUPES['devops'])}."
+    assert trouves == GROUPES["devops"], message(
+        en=f"The filter on membership of \"devops\" returns {sorted(trouves)} instead "
+        f"of {sorted(GROUPES['devops'])}.",
+        fr=f"Le filtre sur l'appartenance à « devops » rend {sorted(trouves)} au "
+        f"lieu de {sorted(GROUPES['devops'])}.",
     )
 
 
@@ -308,14 +339,17 @@ def test_les_donnees_survivent_au_redemarrage_du_conteneur(idp):
     """
     base = _base(idp)
     avant = set(_valeurs(_chercher(idp, f"ou=people,{base}", "(objectClass=*)", "uid"), "uid"))
-    assert PERSONNES.keys() <= avant, (
-        f"Les trois comptes ne sont pas tous là avant le redémarrage : {sorted(avant)}"
+    assert PERSONNES.keys() <= avant, message(
+        en=f"The three accounts are not all there before the restart: {sorted(avant)}",
+        fr=f"Les trois comptes ne sont pas tous là avant le redémarrage : {sorted(avant)}",
     )
 
     redemarrage = idp.run(f"docker restart {CONTENEUR_ANNUAIRE}")
-    assert redemarrage.rc == 0, (
-        f"Le conteneur de l'annuaire n'a pas redémarré (rc={redemarrage.rc}) : "
-        f"{redemarrage.stderr.strip()[:300]}"
+    assert redemarrage.rc == 0, message(
+        en=f"The directory's container did not restart (rc={redemarrage.rc}): "
+        f"{redemarrage.stderr.strip()[:300]}",
+        fr=f"Le conteneur de l'annuaire n'a pas redémarré (rc={redemarrage.rc}) : "
+        f"{redemarrage.stderr.strip()[:300]}",
     )
 
     # Sur l'ÉTAT du port, pas sur un délai fixe : LLDAP met de une à dix
@@ -326,15 +360,20 @@ def test_les_donnees_survivent_au_redemarrage_du_conteneur(idp):
         "if timeout 2 bash -c 'echo > /dev/tcp/127.0.0.1/3890' 2>/dev/null; "
         "then echo pret; break; fi; sleep 1; done"
     )
-    assert "pret" in attente.stdout, (
-        "L'annuaire n'a pas rouvert son port LDAP dans la minute qui a suivi "
-        "son redémarrage."
+    assert "pret" in attente.stdout, message(
+        en="The directory did not reopen its LDAP port within the minute following "
+        "its restart.",
+        fr="L'annuaire n'a pas rouvert son port LDAP dans la minute qui a suivi "
+        "son redémarrage.",
     )
 
     apres = set(_valeurs(_chercher(idp, f"ou=people,{base}", "(objectClass=*)", "uid"), "uid"))
     perdus = avant - apres
-    assert not perdus, (
-        f"Le redémarrage a fait disparaître {sorted(perdus)}. Les données de "
+    assert not perdus, message(
+        en=f"The restart made {sorted(perdus)} disappear. The directory's data "
+        "is not persisted: is a volume mounted where "
+        "it is written?",
+        fr=f"Le redémarrage a fait disparaître {sorted(perdus)}. Les données de "
         "l'annuaire ne sont pas persistées : un volume est-il monté là où "
-        "elles s'écrivent ?"
+        "elles s'écrivent ?",
     )

@@ -38,7 +38,7 @@ import shlex
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -66,10 +66,13 @@ def idp():
 
 def _identifiants(hote) -> dict[str, str]:
     fichier = hote.file(IDENTIFIANTS)
-    assert fichier.exists, (
-        f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
+    assert fichier.exists, message(
+        en=f"{IDENTIFIANTS} is missing. The lab's setup did not run, or its "
+        "staging script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
         "script de mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -82,7 +85,10 @@ def _identifiants(hote) -> dict[str, str]:
 def _env_prod(hote, ids: dict[str, str]) -> dict[str, str]:
     """Le fichier d'environnement de l'instance, qui porte l'image épinglée."""
     fichier = hote.file(ids["ENV_PROD"])
-    assert fichier.exists, f"{ids['ENV_PROD']} est absent."
+    assert fichier.exists, message(
+        en=f"{ids['ENV_PROD']} is missing.",
+        fr=f"{ids['ENV_PROD']} est absent.",
+    )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
         if "=" in ligne and not ligne.startswith("#"):
@@ -103,8 +109,12 @@ def _jeton_admin(hote, ids: dict[str, str]) -> str:
         return json.loads(res.stdout).get("access_token", "")
     except json.JSONDecodeError:
         pytest.fail(
-            "L'instance de production n'a pas rendu de jeton "
-            f"d'administration : {res.stdout[:200]!r}")
+            message(
+            en="The production instance returned no administration "
+            f"token: {res.stdout[:200]!r}",
+            fr="L'instance de production n'a pas rendu de jeton "
+            f"d'administration : {res.stdout[:200]!r}",
+        ))
 
 
 def _api(hote, ids: dict[str, str], jeton: str, chemin: str):
@@ -114,8 +124,12 @@ def _api(hote, ids: dict[str, str], jeton: str, chemin: str):
     try:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
-        pytest.fail(f"/admin/{chemin} n'a pas rendu de JSON : "
-                    f"{res.stdout[:200]!r}")
+        pytest.fail(message(
+            en=f"/admin/{chemin} returned no JSON: "
+                    f"{res.stdout[:200]!r}",
+            fr=f"/admin/{chemin} n'a pas rendu de JSON : "
+                    f"{res.stdout[:200]!r}",
+        ))
 
 
 def _exiger_la_montee(hote, ids: dict[str, str]) -> None:
@@ -129,10 +143,13 @@ def _exiger_la_montee(hote, ids: dict[str, str]) -> None:
     jeton = _jeton_admin(hote, ids)
     infos = _api(hote, ids, jeton, "serverinfo")
     version = infos.get("systemInfo", {}).get("version", "")
-    assert version == ids["VERSION_CIBLE"], (
-        f"L'instance tourne en « {version} » et non en "
+    assert version == ids["VERSION_CIBLE"], message(
+        en=f"The instance runs in \"{version}\" and not in "
+        f"\"{ids['VERSION_CIBLE']}\": the upgrade did not happen, and finding "
+        "the data intact therefore proves nothing.",
+        fr=f"L'instance tourne en « {version} » et non en "
         f"« {ids['VERSION_CIBLE']} » : la montée n'a pas eu lieu, et "
-        "constater que les données sont intactes ne prouve donc rien."
+        "constater que les données sont intactes ne prouve donc rien.",
     )
 
 
@@ -158,23 +175,33 @@ def test_l_instance_tourne_dans_la_version_cible(idp):
     infos = _api(idp, ids, jeton, "serverinfo")
     version = infos.get("systemInfo", {}).get("version", "")
 
-    assert version == ids["VERSION_CIBLE"], (
-        f"L'instance annonce la version « {version} » et non "
+    assert version == ids["VERSION_CIBLE"], message(
+        en=f"The instance announces version \"{version}\" and not "
+        f"\"{ids['VERSION_CIBLE'] }\". Was the pinned image changed "
+        f"in {ids['ENV_PROD']}, and the service restarted?",
+        fr=f"L'instance annonce la version « {version} » et non "
         f"« {ids['VERSION_CIBLE'] }». L'image épinglée a-t-elle été changée "
-        f"dans {ids['ENV_PROD']}, et le service relancé ?"
+        f"dans {ids['ENV_PROD']}, et le service relancé ?",
     )
 
     env = _env_prod(idp, ids)
-    assert ids["VERSION_CIBLE"] in env.get("IMAGE_KEYCLOAK", ""), (
-        "Le serveur tourne dans la bonne version mais le fichier "
+    assert ids["VERSION_CIBLE"] in env.get("IMAGE_KEYCLOAK", ""), message(
+        en="The server runs in the right version but the environment file "
+        "does not refer to it: "
+        f"IMAGE_KEYCLOAK = {env.get('IMAGE_KEYCLOAK', '(missing)')!r}. On "
+        "the next restart, the old version would come back.",
+        fr="Le serveur tourne dans la bonne version mais le fichier "
         f"d'environnement n'y fait pas référence : "
         f"IMAGE_KEYCLOAK = {env.get('IMAGE_KEYCLOAK', '(absent)')!r}. Au "
-        "prochain redémarrage, l'ancienne version reviendrait."
+        "prochain redémarrage, l'ancienne version reviendrait.",
     )
-    assert "@sha256:" in env.get("IMAGE_KEYCLOAK", ""), (
-        "L'image n'est pas épinglée par digest : "
+    assert "@sha256:" in env.get("IMAGE_KEYCLOAK", ""), message(
+        en="The image is not pinned by digest: "
+        f"{env.get('IMAGE_KEYCLOAK')!r}. A tag moves, and two restarts can "
+        "then give two versions.",
+        fr="L'image n'est pas épinglée par digest : "
         f"{env.get('IMAGE_KEYCLOAK')!r}. Une étiquette se déplace, et deux "
-        "redémarrages peuvent alors donner deux versions."
+        "redémarrages peuvent alors donner deux versions.",
     )
 
 
@@ -189,10 +216,13 @@ def test_la_base_porte_la_marque_de_la_migration(idp):
     journaux = idp.run(
         f"docker logs {ids['CONTENEUR_KEYCLOAK']} 2>&1 "
         "| grep -iE 'Migrating older model|Updating database' | head -3")
-    assert journaux.stdout.strip(), (
-        "Les journaux de l'instance ne portent aucune trace de migration de "
+    assert journaux.stdout.strip(), message(
+        en="The instance's logs carry no trace of a schema migration. Either "
+        "the upgrade did not happen, or the database was recreated empty, "
+        "which is not an upgrade.",
+        fr="Les journaux de l'instance ne portent aucune trace de migration de "
         "schéma. Soit la montée n'a pas eu lieu, soit la base a été recréée "
-        "vide, ce qui n'est pas une montée."
+        "vide, ce qui n'est pas une montée.",
     )
 
 
@@ -212,16 +242,21 @@ def test_une_sauvegarde_de_la_base_existe_et_precede_la_montee(idp):
         r"\( -name '*.dump' -o -name '*.sql' -o -name '*.sql.gz' "
         r"-o -name '*.custom' \) -printf '%T@ %s %p\n' | sort -n")
     lignes = [l for l in trouvees.stdout.splitlines() if l.strip()]
-    assert lignes, (
-        f"Aucune sauvegarde dans {ids['REPERTOIRE_SAUVEGARDES']}. Le test y "
-        "cherche un fichier .dump, .sql, .sql.gz ou .custom."
+    assert lignes, message(
+        en=f"No backup in {ids['REPERTOIRE_SAUVEGARDES']}. The test looks there "
+        "for a .dump, .sql, .sql.gz or .custom file.",
+        fr=f"Aucune sauvegarde dans {ids['REPERTOIRE_SAUVEGARDES']}. Le test y "
+        "cherche un fichier .dump, .sql, .sql.gz ou .custom.",
     )
 
     horodatage, taille, chemin = lignes[-1].split(None, 2)
-    assert int(taille) > 10000, (
-        f"La sauvegarde {chemin} ne pèse que {taille} octets. Une base de "
+    assert int(taille) > 10000, message(
+        en=f"The backup {chemin} weighs only {taille} bytes. A Keycloak database "
+        "with a realm and accounts runs to a few hundred kilobytes: this "
+        "file is probably empty or truncated.",
+        fr=f"La sauvegarde {chemin} ne pèse que {taille} octets. Une base de "
         "Keycloak avec un realm et des comptes en fait quelques centaines de "
-        "kilo-octets : ce fichier est probablement vide ou tronqué."
+        "kilo-octets : ce fichier est probablement vide ou tronqué.",
     )
 
     # La date de CRÉATION du conteneur, et non son dernier démarrage : un
@@ -230,15 +265,21 @@ def test_une_sauvegarde_de_la_base_existe_et_precede_la_montee(idp):
     cree = idp.run(
         f"docker inspect -f '{{{{.Created}}}}' {ids['CONTENEUR_KEYCLOAK']} "
         "| xargs -I{} date -d {} +%s")
-    assert cree.rc == 0 and cree.stdout.strip(), (
-        f"Impossible de lire la date de création de "
-        f"{ids['CONTENEUR_KEYCLOAK']} : {cree.stderr[:200]!r}"
+    assert cree.rc == 0 and cree.stdout.strip(), message(
+        en=f"The creation date of {ids['CONTENEUR_KEYCLOAK']} cannot be read: "
+        f"{cree.stderr[:200]!r}",
+        fr=f"Impossible de lire la date de création de "
+        f"{ids['CONTENEUR_KEYCLOAK']} : {cree.stderr[:200]!r}",
     )
-    assert float(horodatage) < float(cree.stdout.strip()), (
-        f"La sauvegarde {chemin} est POSTÉRIEURE à la création du conteneur "
+    assert float(horodatage) < float(cree.stdout.strip()), message(
+        en=f"The backup {chemin} is LATER than the creation of the target "
+        "version's container. It was therefore taken after the upgrade, and it "
+        "does not allow going back to the state before. A backup that does not "
+        "precede the risky gesture protects nothing.",
+        fr=f"La sauvegarde {chemin} est POSTÉRIEURE à la création du conteneur "
         "de la version cible. Elle a donc été prise après la montée, et elle "
         "ne permet pas de revenir à l'état d'avant. Une sauvegarde qui ne "
-        "précède pas le geste risqué ne protège de rien."
+        "précède pas le geste risqué ne protège de rien.",
     )
 
 
@@ -257,7 +298,10 @@ def test_la_sauvegarde_se_restaure_dans_une_base_vide(idp):
         f"find {ids['REPERTOIRE_SAUVEGARDES']} -type f "
         r"\( -name '*.dump' -o -name '*.sql' -o -name '*.sql.gz' "
         r"-o -name '*.custom' \) -printf '%T@ %p\n' | sort -n | tail -1")
-    assert trouvees.stdout.strip(), "Aucune sauvegarde à restaurer."
+    assert trouvees.stdout.strip(), message(
+        en="No backup to restore.",
+        fr="Aucune sauvegarde à restaurer.",
+    )
     chemin = trouvees.stdout.split(None, 1)[1].strip()
 
     idp.run(f"docker exec {ids['CONTENEUR_BASE']} psql -U keycloak -d postgres "
@@ -265,8 +309,9 @@ def test_la_sauvegarde_se_restaure_dans_une_base_vide(idp):
     creation = idp.run(
         f"docker exec {ids['CONTENEUR_BASE']} psql -U keycloak -d postgres "
         f"-c 'CREATE DATABASE {base}'")
-    assert creation.rc == 0, (
-        f"Impossible de créer la base d'essai : {creation.stderr[:200]!r}"
+    assert creation.rc == 0, message(
+        en=f"The trial database cannot be created: {creation.stderr[:200]!r}",
+        fr=f"Impossible de créer la base d'essai : {creation.stderr[:200]!r}",
     )
 
     try:
@@ -284,10 +329,13 @@ def test_la_sauvegarde_se_restaure_dans_une_base_vide(idp):
         tables = _psql(idp, ids, base,
                        "select count(*) from information_schema.tables "
                        "where table_schema='public'")
-        assert tables.isdigit() and int(tables) > 50, (
-            f"La restauration de {chemin} n'a produit que {tables!r} tables. "
+        assert tables.isdigit() and int(tables) > 50, message(
+            en=f"Restoring {chemin} produced only {tables!r} tables. "
+            f"Output: {restauration.stdout[-300:]!r} "
+            f"{restauration.stderr[-300:]!r}",
+            fr=f"La restauration de {chemin} n'a produit que {tables!r} tables. "
             f"Sortie : {restauration.stdout[-300:]!r} "
-            f"{restauration.stderr[-300:]!r}"
+            f"{restauration.stderr[-300:]!r}",
         )
 
         comptes = _psql(
@@ -295,10 +343,13 @@ def test_la_sauvegarde_se_restaure_dans_une_base_vide(idp):
             "select count(*) from user_entity where realm_id in "
             f"(select id from realm where name='{ids['REALM']}')")
         attendus = int(ids["NB_COMPTES_ATTENDUS"])
-        assert comptes.isdigit() and int(comptes) >= attendus, (
-            f"La base restaurée ne porte que {comptes!r} comptes du realm "
+        assert comptes.isdigit() and int(comptes) >= attendus, message(
+            en=f"The restored database carries only {comptes!r} accounts of the realm "
+            f"\"{ids['REALM']}\", instead of {attendus}. Was the backup taken "
+            "on the right database, and with the data?",
+            fr=f"La base restaurée ne porte que {comptes!r} comptes du realm "
             f"« {ids['REALM']} », au lieu de {attendus}. La sauvegarde a-t-elle "
-            "été prise sur la bonne base, et avec les données ?"
+            "été prise sur la bonne base, et avec les données ?",
         )
     finally:
         # La base d'essai part, quoi qu'il arrive : un test qui laisse des
@@ -320,8 +371,9 @@ def test_l_export_du_realm_existe_et_porte_les_comptes(idp):
         f"find {ids['REPERTOIRE_EXPORTS']} -type f -name '*.json' "
         r"-printf '%p\n'")
     chemins = [l for l in fichiers.stdout.splitlines() if l.strip()]
-    assert chemins, (
-        f"Aucun export JSON dans {ids['REPERTOIRE_EXPORTS']}."
+    assert chemins, message(
+        en=f"No JSON export in {ids['REPERTOIRE_EXPORTS']}.",
+        fr=f"Aucun export JSON dans {ids['REPERTOIRE_EXPORTS']}.",
     )
 
     realm_trouve = False
@@ -331,23 +383,32 @@ def test_l_export_du_realm_existe_et_porte_les_comptes(idp):
         try:
             charge = json.loads(brut)
         except json.JSONDecodeError:
-            pytest.fail(f"{chemin} n'est pas du JSON lisible.")
+            pytest.fail(message(
+                en=f"{chemin} is not readable JSON.",
+                fr=f"{chemin} n'est pas du JSON lisible.",
+            ))
         if isinstance(charge, dict) and charge.get("realm") == ids["REALM"]:
             realm_trouve = True
         utilisateurs = charge.get("users") if isinstance(charge, dict) else None
         if isinstance(utilisateurs, list):
             comptes_trouves += len(utilisateurs)
 
-    assert realm_trouve, (
-        f"Aucun des fichiers exportés ne décrit le realm « {ids['REALM']} » : "
-        f"{chemins}"
+    assert realm_trouve, message(
+        en=f"None of the exported files describes the realm \"{ids['REALM']}\": "
+        f"{chemins}",
+        fr=f"Aucun des fichiers exportés ne décrit le realm « {ids['REALM']} » : "
+        f"{chemins}",
     )
     attendus = int(ids["NB_COMPTES_ATTENDUS"])
-    assert comptes_trouves >= attendus, (
-        f"L'export ne porte que {comptes_trouves} comptes au lieu de "
+    assert comptes_trouves >= attendus, message(
+        en=f"The export carries only {comptes_trouves} accounts instead of "
+        f"{attendus}. The file \"{ids['REALM']}-realm.json\" contains NONE of "
+        "them: the accounts are in a separate file, and that is precisely "
+        "what one forgets to copy.",
+        fr=f"L'export ne porte que {comptes_trouves} comptes au lieu de "
         f"{attendus}. Le fichier « {ids['REALM']}-realm.json » n'en contient "
         "AUCUN : les comptes sont dans un fichier séparé, et c'est précisément "
-        "ce qu'on oublie de copier."
+        "ce qu'on oublie de copier.",
     )
 
 
@@ -362,15 +423,18 @@ def test_le_realm_ses_comptes_et_ses_clients_ont_survecu(idp):
 
     comptes = _api(idp, ids, jeton, f"realms/{ids['REALM']}/users?max=200")
     attendus = int(ids["NB_COMPTES_ATTENDUS"])
-    assert len(comptes) >= attendus, (
-        f"Le realm ne porte que {len(comptes)} comptes au lieu de {attendus}."
+    assert len(comptes) >= attendus, message(
+        en=f"The realm carries only {len(comptes)} accounts instead of {attendus}.",
+        fr=f"Le realm ne porte que {len(comptes)} comptes au lieu de {attendus}.",
     )
 
     clients = _api(idp, ids, jeton, f"realms/{ids['REALM']}/clients")
     les_notres = [c for c in clients if c.get("clientId", "").startswith("appli")]
-    assert len(les_notres) >= 2, (
-        f"Les clients applicatifs du realm ont disparu : "
-        f"{[c.get('clientId') for c in clients]}"
+    assert len(les_notres) >= 2, message(
+        en=f"The realm's application clients have disappeared: "
+        f"{[c.get('clientId') for c in clients]}",
+        fr=f"Les clients applicatifs du realm ont disparu : "
+        f"{[c.get('clientId') for c in clients]}",
     )
 
 
@@ -387,15 +451,20 @@ def test_la_trace_d_audit_a_survecu(idp):
     total = 0
     for table in TABLES_DE_TRACE:
         valeur = _psql(idp, ids, "keycloak", f"select count(*) from {table}")
-        assert valeur.isdigit(), (
-            f"La table {table} n'a pas pu être lue : {valeur!r}. La base de "
-            "l'instance est-elle celle d'avant la montée ?"
+        assert valeur.isdigit(), message(
+            en=f"The table {table} could not be read: {valeur!r}. Is the instance's "
+            "database the one from before the upgrade?",
+            fr=f"La table {table} n'a pas pu être lue : {valeur!r}. La base de "
+            "l'instance est-elle celle d'avant la montée ?",
         )
         total += int(valeur)
-    assert total > 0, (
-        "Aucun événement dans la base après la montée, alors que le setup en "
+    assert total > 0, message(
+        en="No event in the database after the upgrade, although the setup had "
+        "recorded some. The database was recreated, or emptied: the version "
+        "would be right and the audit trail would be gone.",
+        fr="Aucun événement dans la base après la montée, alors que le setup en "
         "avait enregistré. La base a été recréée, ou vidée : la version serait "
-        "juste et la trace d'audit aurait disparu."
+        "juste et la trace d'audit aurait disparu.",
     )
 
 
@@ -415,9 +484,15 @@ def test_un_compte_se_connecte_apres_la_montee(idp):
     try:
         charge = json.loads(res.stdout)
     except json.JSONDecodeError:
-        pytest.fail(f"Le point de jeton n'a pas répondu en JSON : "
-                    f"{res.stdout[:200]!r}")
-    assert "access_token" in charge, (
-        "« compte1 » ne se connecte plus après la montée : "
-        f"{json.dumps(charge)[:250]}"
+        pytest.fail(message(
+            en=f"The token endpoint did not answer in JSON: "
+                    f"{res.stdout[:200]!r}",
+            fr=f"Le point de jeton n'a pas répondu en JSON : "
+                    f"{res.stdout[:200]!r}",
+        ))
+    assert "access_token" in charge, message(
+        en="\"compte1\" can no longer log in after the upgrade: "
+        f"{json.dumps(charge)[:250]}",
+        fr="« compte1 » ne se connecte plus après la montée : "
+        f"{json.dumps(charge)[:250]}",
     )

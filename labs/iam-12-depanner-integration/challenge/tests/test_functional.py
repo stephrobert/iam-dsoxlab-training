@@ -31,7 +31,7 @@ import json
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -63,10 +63,13 @@ def idp():
 
 def _identifiants(hote) -> dict[str, str]:
     fichier = hote.file(IDENTIFIANTS)
-    assert fichier.exists, (
-        f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
+    assert fichier.exists, message(
+        en=f"{IDENTIFIANTS} is missing. The lab's setup did not run, or its "
+        "staging script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
         "script de mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -86,9 +89,11 @@ def _jeton_admin(hote) -> str:
         '-d "username=$u" -d "password=$p" | jq -r \'.access_token // empty\''
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        "Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
-        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})"
+    assert jeton, message(
+        en="No administration token could be obtained. Is Keycloak answering "
+        f"on {KEYCLOAK}, and is the base installed? (rc={res.rc})",
+        fr="Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
+        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})",
     )
     return jeton
 
@@ -105,16 +110,22 @@ def _api(hote, chemin: str) -> object:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
-            f"{res.stdout[:300]}"
+            message(
+            en=f"The administration API returned no JSON for {chemin}: "
+            f"{res.stdout[:300]}",
+            fr=f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
+            f"{res.stdout[:300]}",
+        )
         )
 
 
 def _client_declare(hote) -> dict:
     trouves = _api(hote, f"realms/{REALM}/clients?clientId={CLIENT}") or []
-    assert trouves, (
-        f"Aucun client « {CLIENT} » dans le realm « {REALM} ». Il existait au "
-        "départ : l'avez-vous supprimé plutôt que corrigé ?"
+    assert trouves, message(
+        en=f"No client \"{CLIENT}\" in the realm \"{REALM}\". It existed at the "
+        "start: did you delete it rather than fix it?",
+        fr=f"Aucun client « {CLIENT} » dans le realm « {REALM} ». Il existait au "
+        "départ : l'avez-vous supprimé plutôt que corrigé ?",
     )
     return trouves[0]
 
@@ -125,9 +136,11 @@ def _attribut(client: dict, clef: str) -> str:
 
 def _etat_temoin(hote) -> dict:
     res = hote.run(f"curl -sS --max-time 10 http://127.0.0.1:{PORT_TEMOIN}/etat")
-    assert res.rc == 0 and res.stdout.strip(), (
-        f"L'application témoin ne répond pas sur le port {PORT_TEMOIN}. Son "
-        f"journal est dans {APPLI}/temoin.log."
+    assert res.rc == 0 and res.stdout.strip(), message(
+        en=f"The witness application does not answer on port {PORT_TEMOIN}. Its "
+        f"log is in {APPLI}/temoin.log.",
+        fr=f"L'application témoin ne répond pas sur le port {PORT_TEMOIN}. Son "
+        f"journal est dans {APPLI}/temoin.log.",
     )
     return json.loads(res.stdout)
 
@@ -143,16 +156,22 @@ def _parcours(hote) -> dict:
         f"--mot-de-passe {identifiants['MOT_DE_PASSE']!r} "
         f"--attendre-texte {attendu!r} --tours 25"
     )
-    assert res.rc != 2, (
-        "L'outil de parcours n'a pas pu mesurer, ce qui n'est pas un échec de "
-        f"l'intégration : {res.stderr.strip()[:400]}"
+    assert res.rc != 2, message(
+        en="The journey tool could not measure, which is not a failure of "
+        f"the integration: {res.stderr.strip()[:400]}",
+        fr="L'outil de parcours n'a pas pu mesurer, ce qui n'est pas un échec de "
+        f"l'intégration : {res.stderr.strip()[:400]}",
     )
     try:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"Le parcours n'a rien rendu d'exploitable (rc={res.rc}) : "
-            f"{(res.stdout + res.stderr)[:400]}"
+            message(
+            en=f"The journey returned nothing usable (rc={res.rc}): "
+            f"{(res.stdout + res.stderr)[:400]}",
+            fr=f"Le parcours n'a rien rendu d'exploitable (rc={res.rc}) : "
+            f"{(res.stdout + res.stderr)[:400]}",
+        )
         )
 
 
@@ -170,24 +189,34 @@ def test_l_application_se_reconnecte(idp):
     """
     resultat = _parcours(idp)
 
-    assert resultat.get("texte_trouve") is True, (
-        "La connexion échoue toujours. Le parcours s'est terminé sur "
+    assert resultat.get("texte_trouve") is True, message(
+        en="The login still fails. The journey ended on "
+        f"{resultat.get('arrivee')} (HTTP {resultat.get('http')}) with:\n"
+        f"  {str(resultat.get('texte'))[:400]}\n\n"
+        "Read that message: it almost always names the faulty setting. And "
+        "look at the realm's events, which the setup enabled: "
+        "`LOGIN_ERROR` carries an `error` field there that says the cause in one word.",
+        fr="La connexion échoue toujours. Le parcours s'est terminé sur "
         f"{resultat.get('arrivee')} (HTTP {resultat.get('http')}) avec :\n"
         f"  {str(resultat.get('texte'))[:400]}\n\n"
         "Lisez ce message : il nomme presque toujours le paramètre fautif. Et "
         "regardez les événements du realm, que le setup a activés : "
-        "`LOGIN_ERROR` y porte un champ `error` qui dit la cause en un mot."
+        "`LOGIN_ERROR` y porte un champ `error` qui dit la cause en un mot.",
     )
 
     etat = _etat_temoin(idp)
-    assert etat.get("connecte") is True, (
-        "L'application affiche la page mais son état ne dit pas qu'elle a "
-        f"validé l'ID token : {json.dumps(etat, ensure_ascii=False)[:300]}"
+    assert etat.get("connecte") is True, message(
+        en="The application shows the page but its state does not say it "
+        f"validated the ID token: {json.dumps(etat, ensure_ascii=False)[:300]}",
+        fr="L'application affiche la page mais son état ne dit pas qu'elle a "
+        f"validé l'ID token : {json.dumps(etat, ensure_ascii=False)[:300]}",
     )
     validations = etat.get("validations") or []
-    assert validations and validations[-1].get("ok") is True, (
-        "La dernière validation d'ID token a échoué : "
-        f"{json.dumps(validations[-1:], ensure_ascii=False)[:300]}"
+    assert validations and validations[-1].get("ok") is True, message(
+        en="The last ID token validation failed: "
+        f"{json.dumps(validations[-1:], ensure_ascii=False)[:300]}",
+        fr="La dernière validation d'ID token a échoué : "
+        f"{json.dumps(validations[-1:], ensure_ascii=False)[:300]}",
     )
 
 
@@ -205,25 +234,36 @@ def test_aucune_uri_de_redirection_n_a_ete_elargie(idp):
     client = _client_declare(idp)
     uris = client.get("redirectUris") or []
 
-    assert uris, "Le client ne déclare aucune URI de redirection."
+    assert uris, message(
+        en="The client declares no redirect URI.",
+        fr="Le client ne déclare aucune URI de redirection.",
+    )
     fautives = [u for u in uris if "*" in u]
-    assert not fautives, (
-        f"URI de redirection en joker : {fautives}. Si c'était la panne, la "
+    assert not fautives, message(
+        en=f"Wildcard redirect URIs: {fautives}. If that was the breakage, the "
+        "right fix is the EXACT URI the application uses, not a pattern "
+        "covering everything.",
+        fr=f"URI de redirection en joker : {fautives}. Si c'était la panne, la "
         "bonne correction est l'URI EXACTE que l'application utilise, pas un "
-        "motif qui couvre tout."
+        "motif qui couvre tout.",
     )
 
     origines = client.get("webOrigins") or []
-    assert "*" not in origines, (
-        "Les origines web contiennent `*`, ce qui autorise n'importe quel site "
-        "à appeler le fournisseur depuis le navigateur de l'utilisateur."
+    assert "*" not in origines, message(
+        en="The web origins contain `*`, which allows any site to call the "
+        "provider from the user's browser.",
+        fr="Les origines web contiennent `*`, ce qui autorise n'importe quel site "
+        "à appeler le fournisseur depuis le navigateur de l'utilisateur.",
     )
 
     attendu = f"http://127.0.0.1:{PORT_TEMOIN}/callback"
-    assert attendu in uris, (
-        f"L'URI exacte de l'application ({attendu}) n'est pas déclarée "
+    assert attendu in uris, message(
+        en=f"The application's exact URI ({attendu}) is not declared "
+        f"(declared: {uris}). The application's return path is "
+        "`/callback`, and it is not negotiable.",
+        fr=f"L'URI exacte de l'application ({attendu}) n'est pas déclarée "
         f"(déclarées : {uris}). Le chemin de retour de l'application est "
-        "`/callback`, et il n'est pas négociable."
+        "`/callback`, et il n'est pas négociable.",
     )
 
 
@@ -241,18 +281,25 @@ def test_le_client_est_reste_public_et_sans_secret(idp):
     """
     client = _client_declare(idp)
 
-    assert client.get("publicClient") is True, (
-        "Le client est confidentiel. Une application que l'utilisateur exécute "
+    assert client.get("publicClient") is True, message(
+        en="The client is confidential. An application the user runs can keep "
+        "no secret: if that was the breakage, the fix is to make it public "
+        "again, not to entrust it with a secret.",
+        fr="Le client est confidentiel. Une application que l'utilisateur exécute "
         "ne peut garder aucun secret : si c'était la panne, la correction est "
-        "de la remettre publique, pas de lui confier un secret."
+        "de la remettre publique, pas de lui confier un secret.",
     )
-    assert not client.get("secret"), (
-        "Le client porte un secret. Dans une application publique, il est "
-        "lisible par tous ceux qui l'installent."
+    assert not client.get("secret"), message(
+        en="The client carries a secret. In a public application, it is "
+        "readable by all those who install it.",
+        fr="Le client porte un secret. Dans une application publique, il est "
+        "lisible par tous ceux qui l'installent.",
     )
-    assert client.get("enabled") is True, (
-        "Le client est désactivé. C'était peut-être la panne : la correction "
-        "est de le réactiver."
+    assert client.get("enabled") is True, message(
+        en="The client is disabled. That may have been the breakage: the fix "
+        "is to enable it again.",
+        fr="Le client est désactivé. C'était peut-être la panne : la correction "
+        "est de le réactiver.",
     )
 
 
@@ -270,10 +317,13 @@ def test_pkce_est_toujours_exige_et_le_serveur_le_prouve(idp):
     client = _client_declare(idp)
     methode = _attribut(client, "pkce.code.challenge.method")
 
-    assert methode == "S256", (
-        f"Le client n'exige plus PKCE en S256 (valeur lue : {methode!r}). En "
+    assert methode == "S256", message(
+        en=f"The client no longer requires PKCE with S256 (value read: {methode!r}). "
+        "With `plain`, the verifier travels in clear; absent, an intercepted "
+        "code is enough to obtain a token.",
+        fr=f"Le client n'exige plus PKCE en S256 (valeur lue : {methode!r}). En "
         "`plain`, le vérifieur voyage en clair ; absent, un code intercepté "
-        "suffit à obtenir un jeton."
+        "suffit à obtenir un jeton.",
     )
 
     # Le refus réel, parce qu'un attribut peut être posé sans effet.
@@ -284,14 +334,18 @@ def test_pkce_est_toujours_exige_et_le_serveur_le_prouve(idp):
         f"--utilisateur {identifiants['UTILISATEUR']} "
         f"--mot-de-passe {identifiants['MOT_DE_PASSE']!r} --pkce --sans-verifier"
     )
-    assert res.rc != 2, (
-        f"L'outil de flux n'a pas pu mesurer : {res.stderr.strip()[:300]}"
+    assert res.rc != 2, message(
+        en=f"The flow tool could not measure: {res.stderr.strip()[:300]}",
+        fr=f"L'outil de flux n'a pas pu mesurer : {res.stderr.strip()[:300]}",
     )
     refuse = json.loads(res.stdout)
-    assert refuse.get("echange_http") == 400, (
-        "Keycloak a accepté un échange de code SANS vérifieur PKCE "
+    assert refuse.get("echange_http") == 400, message(
+        en="Keycloak accepted a code exchange WITHOUT a PKCE verifier "
+        f"(HTTP {refuse.get('echange_http')}). The attribute is therefore set "
+        f"without effect. Answer: {str(refuse.get('jetons'))[:300]}",
+        fr="Keycloak a accepté un échange de code SANS vérifieur PKCE "
         f"(HTTP {refuse.get('echange_http')}). L'attribut est donc posé sans "
-        f"effet. Réponse : {str(refuse.get('jetons'))[:300]}"
+        f"effet. Réponse : {str(refuse.get('jetons'))[:300]}",
     )
 
 
@@ -308,24 +362,35 @@ def test_aucun_octroi_dangereux_n_a_ete_ouvert(idp):
     """
     client = _client_declare(idp)
 
-    assert client.get("standardFlowEnabled") is True, (
-        "Le flux de code d'autorisation est fermé. C'était peut-être la panne : "
+    assert client.get("standardFlowEnabled") is True, message(
+        en="The authorization code flow is closed. That may have been the breakage: "
+        "the fix is to open it again, and it is the only one this client must "
+        "use.",
+        fr="Le flux de code d'autorisation est fermé. C'était peut-être la panne : "
         "la correction est de le réouvrir, et c'est le seul que ce client doit "
-        "employer."
+        "employer.",
     )
-    assert client.get("implicitFlowEnabled") is False, (
-        "Le flux implicite a été ouvert. Il rend le jeton dans l'URL, donc dans "
+    assert client.get("implicitFlowEnabled") is False, message(
+        en="The implicit flow was opened. It returns the token in the URL, hence in "
+        "the browser's history and in the logs of intermediate "
+        "servers. RFC 9700 forbids it.",
+        fr="Le flux implicite a été ouvert. Il rend le jeton dans l'URL, donc dans "
         "l'historique du navigateur et dans les journaux des serveurs "
-        "intermédiaires. La RFC 9700 le proscrit."
+        "intermédiaires. La RFC 9700 le proscrit.",
     )
-    assert client.get("directAccessGrantsEnabled") is False, (
-        "L'octroi par mot de passe a été ouvert. Il fait voir le mot de passe "
+    assert client.get("directAccessGrantsEnabled") is False, message(
+        en="The password grant was opened. It makes the application see the "
+        "password, and it repairs none of this lab's breakages: it works "
+        "around one.",
+        fr="L'octroi par mot de passe a été ouvert. Il fait voir le mot de passe "
         "à l'application, et il ne répare aucune des pannes de ce lab : il en "
-        "contourne une."
+        "contourne une.",
     )
-    assert client.get("serviceAccountsEnabled") is False, (
-        "Le compte de service a été ouvert sur un client public, ce qui n'a pas "
-        "de sens : sans secret, n'importe qui pourrait s'en servir."
+    assert client.get("serviceAccountsEnabled") is False, message(
+        en="The service account was opened on a public client, which makes no "
+        "sense: with no secret, anyone could use it.",
+        fr="Le compte de service a été ouvert sur un client public, ce qui n'a pas "
+        "de sens : sans secret, n'importe qui pourrait s'en servir.",
     )
 
 
@@ -343,18 +408,26 @@ def test_l_application_s_adresse_toujours_au_bon_realm(idp):
     """
     etat = _etat_temoin(idp)
 
-    assert etat.get("configuration_lue") is True, (
-        "L'application tourne mais ne lit pas sa configuration : "
-        f"{etat.get('configuration_erreur')}."
+    assert etat.get("configuration_lue") is True, message(
+        en="The application runs but does not read its configuration: "
+        f"{etat.get('configuration_erreur')}.",
+        fr="L'application tourne mais ne lit pas sa configuration : "
+        f"{etat.get('configuration_erreur')}.",
     )
     attendu = f"{KEYCLOAK}/realms/{REALM}"
-    assert etat.get("issuer") == attendu, (
-        f"L'application s'adresse à {etat.get('issuer')!r} au lieu de "
+    assert etat.get("issuer") == attendu, message(
+        en=f"The application talks to {etat.get('issuer')!r} instead of "
+        f"{attendu!r}. A realm serves one population: the one of the "
+        "server's administrators is not the one of an application's "
+        "users.",
+        fr=f"L'application s'adresse à {etat.get('issuer')!r} au lieu de "
         f"{attendu!r}. Un realm sert une population : celui des "
         "administrateurs du serveur n'est pas celui des utilisateurs d'une "
-        "application."
+        "application.",
     )
-    assert etat.get("client_id") == CLIENT, (
-        f"L'application se présente sous {etat.get('client_id')!r} au lieu de "
-        f"{CLIENT!r}."
+    assert etat.get("client_id") == CLIENT, message(
+        en=f"The application presents itself as {etat.get('client_id')!r} instead of "
+        f"{CLIENT!r}.",
+        fr=f"L'application se présente sous {etat.get('client_id')!r} au lieu de "
+        f"{CLIENT!r}.",
     )

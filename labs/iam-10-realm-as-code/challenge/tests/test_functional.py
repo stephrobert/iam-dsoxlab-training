@@ -34,7 +34,7 @@ import shlex
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -68,10 +68,13 @@ def idp():
 
 def _identifiants(hote) -> dict[str, str]:
     fichier = hote.file(IDENTIFIANTS)
-    assert fichier.exists, (
-        f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
+    assert fichier.exists, message(
+        en=f"{IDENTIFIANTS} is missing. The lab's setup did not run, or its "
+        "staging script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
         "script de mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -97,7 +100,10 @@ def _jeton_admin(hote, ids: dict[str, str]) -> str:
     try:
         return json.loads(res.stdout)["access_token"]
     except (json.JSONDecodeError, KeyError):
-        pytest.fail(f"Pas de jeton d'administration : {res.stdout[:200]!r}")
+        pytest.fail(message(
+            en=f"No administration token: {res.stdout[:200]!r}",
+            fr=f"Pas de jeton d'administration : {res.stdout[:200]!r}",
+        ))
 
 
 def _api(hote, ids: dict[str, str], jeton: str, chemin: str, *,
@@ -110,8 +116,12 @@ def _api(hote, ids: dict[str, str], jeton: str, chemin: str, *,
     try:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
-        pytest.fail(f"/admin/{chemin} n'a pas rendu de JSON : "
-                    f"{res.stdout[:200]!r}")
+        pytest.fail(message(
+            en=f"/admin/{chemin} returned no JSON: "
+                    f"{res.stdout[:200]!r}",
+            fr=f"/admin/{chemin} n'a pas rendu de JSON : "
+                    f"{res.stdout[:200]!r}",
+        ))
 
 
 def _realm_decrit(hote, ids: dict[str, str], jeton: str) -> dict:
@@ -127,12 +137,18 @@ def _realm_decrit(hote, ids: dict[str, str], jeton: str) -> dict:
     try:
         charge = json.loads(brut)
     except json.JSONDecodeError:
-        pytest.fail(f"Réponse illisible pour le realm "
-                    f"« {ids['REALM_A_DECRIRE']} » : {brut[:200]!r}")
+        pytest.fail(message(
+            en=f"Unreadable answer for the realm "
+                    f"\"{ids['REALM_A_DECRIRE']}\": {brut[:200]!r}",
+            fr=f"Réponse illisible pour le realm "
+                    f"« {ids['REALM_A_DECRIRE']} » : {brut[:200]!r}",
+        ))
     assert isinstance(charge, dict) and charge.get("realm") == ids[
-        "REALM_A_DECRIRE"], (
-        f"Le realm « {ids['REALM_A_DECRIRE']} » n'existe pas. Le fournisseur "
-        f"répond : {brut[:200]!r}"
+        "REALM_A_DECRIRE"], message(
+        en=f"The realm \"{ids['REALM_A_DECRIRE']}\" does not exist. The provider "
+        f"answers: {brut[:200]!r}",
+        fr=f"Le realm « {ids['REALM_A_DECRIRE']} » n'existe pas. Le fournisseur "
+        f"répond : {brut[:200]!r}",
     )
     return charge
 
@@ -207,25 +223,33 @@ def test_des_fichiers_decrivent_le_realm(idp):
     travail = ids["REPERTOIRE_TRAVAIL"]
 
     fichiers = idp.run(f"find {travail} -maxdepth 1 -name '*.tf' | sort")
-    assert fichiers.stdout.strip(), (
-        f"Aucun fichier `.tf` dans {travail}. Le realm doit être DÉCRIT, pas "
-        "seulement créé."
+    assert fichiers.stdout.strip(), message(
+        en=f"No `.tf` file in {travail}. The realm must be DESCRIBED, not "
+        "merely created.",
+        fr=f"Aucun fichier `.tf` dans {travail}. Le realm doit être DÉCRIT, pas "
+        "seulement créé.",
     )
 
     etat = idp.file(f"{travail}/terraform.tfstate")
-    assert etat.exists, (
-        f"{travail}/terraform.tfstate est absent : les fichiers n'ont jamais "
+    assert etat.exists, message(
+        en=f"{travail}/terraform.tfstate is missing: the files were never "
+        "applied, or the state is elsewhere. With no state, nothing links the "
+        "code to the realm, and the next application would recreate everything.",
+        fr=f"{travail}/terraform.tfstate est absent : les fichiers n'ont jamais "
         "été appliqués, ou l'état est ailleurs. Sans état, rien ne relie le "
-        "code au realm, et la prochaine application recréerait tout."
+        "code au realm, et la prochaine application recréerait tout.",
     )
 
     contenu = " ".join(
         idp.file(c).content_string
         for c in fichiers.stdout.split() if c.strip())
-    assert ids["VERSION_PROVIDER"] in contenu, (
-        f"La version du provider ({ids['VERSION_PROVIDER']}) n'est pas "
+    assert ids["VERSION_PROVIDER"] in contenu, message(
+        en=f"The provider's version ({ids['VERSION_PROVIDER']}) is not pinned "
+        "in the files. With no version constraint, an application in six "
+        "months would use another provider.",
+        fr=f"La version du provider ({ids['VERSION_PROVIDER']}) n'est pas "
         "épinglée dans les fichiers. Sans contrainte de version, une "
-        "application dans six mois utiliserait un autre provider."
+        "application dans six mois utiliserait un autre provider.",
     )
 
 
@@ -237,54 +261,74 @@ def test_le_realm_porte_ce_qui_est_decrit(idp):
 
     decrit = _realm_decrit(idp, ids, jeton)
 
-    assert decrit.get("enabled") is True, f"Le realm « {realm} » est désactivé."
-    assert decrit.get("displayName") == ids["DISPLAY_NAME_ATTENDU"], (
-        f"displayName vaut {decrit.get('displayName')!r} au lieu de "
-        f"{ids['DISPLAY_NAME_ATTENDU']!r}."
+    assert decrit.get("enabled") is True, message(
+        en=f"The realm \"{realm}\" is disabled.",
+        fr=f"Le realm « {realm} » est désactivé.",
     )
-    assert str(decrit.get("accessTokenLifespan")) == ids["DUREE_JETON_ATTENDUE"], (
-        f"accessTokenLifespan vaut {decrit.get('accessTokenLifespan')!r} au "
+    assert decrit.get("displayName") == ids["DISPLAY_NAME_ATTENDU"], message(
+        en=f"displayName is {decrit.get('displayName')!r} instead of "
+        f"{ids['DISPLAY_NAME_ATTENDU']!r}.",
+        fr=f"displayName vaut {decrit.get('displayName')!r} au lieu de "
+        f"{ids['DISPLAY_NAME_ATTENDU']!r}.",
+    )
+    assert str(decrit.get("accessTokenLifespan")) == ids["DUREE_JETON_ATTENDUE"], message(
+        en=f"accessTokenLifespan is {decrit.get('accessTokenLifespan')!r} instead "
+        f"of {ids['DUREE_JETON_ATTENDUE']}. The provider accepts \"10m\" as "
+        "readily as seconds, and the API returns seconds.",
+        fr=f"accessTokenLifespan vaut {decrit.get('accessTokenLifespan')!r} au "
         f"lieu de {ids['DUREE_JETON_ATTENDUE']}. Le provider accepte « 10m » "
-        "aussi bien que des secondes, et l'API rend des secondes."
+        "aussi bien que des secondes, et l'API rend des secondes.",
     )
 
     roles = {r["name"] for r in _api(idp, ids, jeton, f"realms/{realm}/roles")}
     attendus = set(ids["ROLES_ATTENDUS"].split())
-    assert attendus <= roles, (
-        f"Rôles manquants : {sorted(attendus - roles)}. Présents : "
-        f"{sorted(r for r in roles if not r.startswith('default-roles'))}"
+    assert attendus <= roles, message(
+        en=f"Missing roles: {sorted(attendus - roles)}. Present: "
+        f"{sorted(r for r in roles if not r.startswith('default-roles'))}",
+        fr=f"Rôles manquants : {sorted(attendus - roles)}. Présents : "
+        f"{sorted(r for r in roles if not r.startswith('default-roles'))}",
     )
 
     groupes = {g["name"] for g in _api(idp, ids, jeton, f"realms/{realm}/groups")}
-    assert ids["GROUPE_ATTENDU"] in groupes, (
-        f"Le groupe « {ids['GROUPE_ATTENDU']} » est absent : {sorted(groupes)}"
+    assert ids["GROUPE_ATTENDU"] in groupes, message(
+        en=f"The group \"{ids['GROUPE_ATTENDU']}\" is missing: {sorted(groupes)}",
+        fr=f"Le groupe « {ids['GROUPE_ATTENDU']} » est absent : {sorted(groupes)}",
     )
 
     clients = _api(idp, ids, jeton, f"realms/{realm}/clients")
     par_id = {c["clientId"]: c for c in clients}
 
     public = par_id.get(ids["CLIENT_PUBLIC_ATTENDU"])
-    assert public is not None, (
-        f"Le client « {ids['CLIENT_PUBLIC_ATTENDU']} » est absent : "
-        f"{sorted(par_id)}"
+    assert public is not None, message(
+        en=f"The client \"{ids['CLIENT_PUBLIC_ATTENDU']}\" is missing: "
+        f"{sorted(par_id)}",
+        fr=f"Le client « {ids['CLIENT_PUBLIC_ATTENDU']} » est absent : "
+        f"{sorted(par_id)}",
     )
-    assert public.get("publicClient") is True, (
-        f"« {ids['CLIENT_PUBLIC_ATTENDU']} » n'est pas public."
+    assert public.get("publicClient") is True, message(
+        en=f"\"{ids['CLIENT_PUBLIC_ATTENDU']}\" is not public.",
+        fr=f"« {ids['CLIENT_PUBLIC_ATTENDU']} » n'est pas public.",
     )
     assert public.get("attributes", {}).get(
-        "pkce.code.challenge.method") == "S256", (
-        f"« {ids['CLIENT_PUBLIC_ATTENDU']} » n'exige pas PKCE S256. Un client "
+        "pkce.code.challenge.method") == "S256", message(
+        en=f"\"{ids['CLIENT_PUBLIC_ATTENDU']}\" does not require PKCE S256. A "
+        "public client with no PKCE leaves an authorization code usable by "
+        "whoever intercepts it.",
+        fr=f"« {ids['CLIENT_PUBLIC_ATTENDU']} » n'exige pas PKCE S256. Un client "
         "public sans PKCE laisse un code d'autorisation utilisable par qui "
-        "l'intercepte."
+        "l'intercepte.",
     )
 
     confidentiel = par_id.get(ids["CLIENT_CONFIDENTIEL_ATTENDU"])
-    assert confidentiel is not None, (
-        f"Le client « {ids['CLIENT_CONFIDENTIEL_ATTENDU']} » est absent : "
-        f"{sorted(par_id)}"
+    assert confidentiel is not None, message(
+        en=f"The client \"{ids['CLIENT_CONFIDENTIEL_ATTENDU']}\" is missing: "
+        f"{sorted(par_id)}",
+        fr=f"Le client « {ids['CLIENT_CONFIDENTIEL_ATTENDU']} » est absent : "
+        f"{sorted(par_id)}",
     )
-    assert confidentiel.get("publicClient") is False, (
-        f"« {ids['CLIENT_CONFIDENTIEL_ATTENDU']} » devrait être confidentiel."
+    assert confidentiel.get("publicClient") is False, message(
+        en=f"\"{ids['CLIENT_CONFIDENTIEL_ATTENDU']}\" should be confidential.",
+        fr=f"« {ids['CLIENT_CONFIDENTIEL_ATTENDU']} » devrait être confidentiel.",
     )
 
 
@@ -302,14 +346,19 @@ def test_l_etat_correspond_aux_fichiers(idp):
     jeton = _jeton_admin(idp, ids)
     plan = _terraform(idp, ids, "plan -detailed-exitcode -no-color -input=false",
                       secret=_secret_du_client(idp, ids, jeton))
-    assert plan.rc != 1, (
-        "Terraform n'a pas pu établir de plan :\n"
-        f"{plan.stdout[-800:]}{plan.stderr[-500:]}"
+    assert plan.rc != 1, message(
+        en="Terraform could not establish a plan:\n"
+        f"{plan.stdout[-800:]}{plan.stderr[-500:]}",
+        fr="Terraform n'a pas pu établir de plan :\n"
+        f"{plan.stdout[-800:]}{plan.stderr[-500:]}",
     )
-    assert plan.rc == 0, (
-        "Le plan annonce des changements : le realm qui tourne n'est pas "
+    assert plan.rc == 0, message(
+        en="The plan announces changes: the realm that runs is not the one the "
+        "files describe.\n"
+        f"{plan.stdout[-900:]}",
+        fr="Le plan annonce des changements : le realm qui tourne n'est pas "
         "celui que décrivent les fichiers.\n"
-        f"{plan.stdout[-900:]}"
+        f"{plan.stdout[-900:]}",
     )
 
 
@@ -328,9 +377,11 @@ def test_une_derive_faite_a_la_main_est_rattrapee(idp):
     deviee = attendue + 1200
 
     avant = _realm_decrit(idp, ids, jeton)
-    assert int(avant["accessTokenLifespan"]) == attendue, (
-        "Le réglage de départ n'est pas celui décrit : ce test ne peut rien "
-        f"mesurer. accessTokenLifespan = {avant['accessTokenLifespan']}"
+    assert int(avant["accessTokenLifespan"]) == attendue, message(
+        en="The starting setting is not the one described: this test can "
+        f"measure nothing. accessTokenLifespan = {avant['accessTokenLifespan']}",
+        fr="Le réglage de départ n'est pas celui décrit : ce test ne peut rien "
+        f"mesurer. accessTokenLifespan = {avant['accessTokenLifespan']}",
     )
 
     def _poser(valeur: int) -> str:
@@ -346,40 +397,54 @@ def test_une_derive_faite_a_la_main_est_rattrapee(idp):
         return pose.stdout.strip()
 
     code = _poser(deviee)
-    assert code == "204", f"La dérive n'a pas pu être posée : HTTP {code}"
+    assert code == "204", message(
+        en=f"The drift could not be introduced: HTTP {code}",
+        fr=f"La dérive n'a pas pu être posée : HTTP {code}",
+    )
 
     try:
         apres_derive = json.loads(
             _api(idp, ids, jeton, f"realms/{realm}", brut=True))
-        assert int(apres_derive["accessTokenLifespan"]) == deviee, (
-            "La dérive n'a pas pris : le test ne mesure rien."
+        assert int(apres_derive["accessTokenLifespan"]) == deviee, message(
+            en="The drift did not take: the test measures nothing.",
+            fr="La dérive n'a pas pris : le test ne mesure rien.",
         )
 
         secret = _secret_du_client(idp, ids, jeton)
         plan = _terraform(
             idp, ids, "plan -detailed-exitcode -no-color -input=false",
             secret=secret)
-        assert plan.rc == 2, (
-            f"Le plan n'a pas vu la dérive (code {plan.rc}, 2 attendu). Le "
+        assert plan.rc == 2, message(
+            en=f"The plan did not see the drift (code {plan.rc}, 2 expected). Is the "
+            "modified setting really described in the files? A setting absent "
+            "from the code is not a drift for Terraform: it is a value it does "
+            "not deal with.\n"
+            f"{plan.stdout[-700:]}",
+            fr=f"Le plan n'a pas vu la dérive (code {plan.rc}, 2 attendu). Le "
             "réglage modifié est-il bien décrit dans les fichiers ? Un réglage "
             "absent du code n'est pas une dérive pour Terraform : c'est une "
             "valeur dont il ne s'occupe pas.\n"
-            f"{plan.stdout[-700:]}"
+            f"{plan.stdout[-700:]}",
         )
 
         applique = _terraform(
             idp, ids, "apply -auto-approve -no-color -input=false",
             secret=secret)
-        assert applique.rc == 0, (
-            "La réapplication a échoué, et la dérive reste :\n"
-            f"{applique.stdout[-800:]}{applique.stderr[-500:]}"
+        assert applique.rc == 0, message(
+            en="Reapplying failed, and the drift remains:\n"
+            f"{applique.stdout[-800:]}{applique.stderr[-500:]}",
+            fr="La réapplication a échoué, et la dérive reste :\n"
+            f"{applique.stdout[-800:]}{applique.stderr[-500:]}",
         )
 
         final = json.loads(_api(idp, ids, jeton, f"realms/{realm}", brut=True))
-        assert int(final["accessTokenLifespan"]) == attendue, (
-            f"Après réapplication, accessTokenLifespan vaut "
+        assert int(final["accessTokenLifespan"]) == attendue, message(
+            en=f"After reapplying, accessTokenLifespan is "
+            f"{final['accessTokenLifespan']} and not {attendue}: the files did "
+            "not take this setting back in hand.",
+            fr=f"Après réapplication, accessTokenLifespan vaut "
             f"{final['accessTokenLifespan']} et non {attendue} : les fichiers "
-            "n'ont pas repris la main sur ce réglage."
+            "n'ont pas repris la main sur ce réglage.",
         )
     finally:
         # Si quelque chose a échoué au milieu, le realm ne reste pas dévié : un
@@ -425,10 +490,13 @@ def test_aucun_justificatif_dans_les_fichiers_ecrits(idp):
                 motifs.append(("le secret du client confidentiel",
                                secret["value"]))
 
-    assert motifs, (
-        "Ce test n'a trouvé aucun justificatif à chercher : il ne mesure donc "
+    assert motifs, message(
+        en="This test found no credential to look for: it therefore measures "
+        "nothing. Does the confidential client exist, and does the base have "
+        "its environment file?",
+        fr="Ce test n'a trouvé aucun justificatif à chercher : il ne mesure donc "
         "rien. Le client confidentiel existe-t-il, et le socle a-t-il son "
-        "fichier d'environnement ?"
+        "fichier d'environnement ?",
     )
 
     for quoi, valeur in motifs:
@@ -436,12 +504,17 @@ def test_aucun_justificatif_dans_les_fichiers_ecrits(idp):
             trouve = idp.run(
                 f"find {travail} -maxdepth 1 -name {shlex.quote(motif_fichier)} "
                 f"-exec grep -l -F {shlex.quote(valeur)} {{}} +")
-            assert not trouve.stdout.strip(), (
-                f"{quoi} est écrit en clair dans "
+            assert not trouve.stdout.strip(), message(
+                en=f"{quoi} is written in clear in "
+                f"{trouve.stdout.strip()}. The provider reads its credentials "
+                "from the environment (KEYCLOAK_USER, KEYCLOAK_PASSWORD), and "
+                "a client secret is passed through a variable, not as a "
+                "literal value.",
+                fr=f"{quoi} est écrit en clair dans "
                 f"{trouve.stdout.strip()}. Le provider lit ses justificatifs "
                 "dans l'environnement (KEYCLOAK_USER, KEYCLOAK_PASSWORD), et "
                 "un secret de client se passe par une variable, pas par une "
-                "valeur littérale."
+                "valeur littérale.",
             )
 
 
@@ -457,13 +530,20 @@ def test_le_fichier_d_etat_est_protege(idp):
     """
     ids = _identifiants(idp)
     etat = idp.file(f"{ids['REPERTOIRE_TRAVAIL']}/terraform.tfstate")
-    assert etat.exists, "Pas de fichier d'état : rien n'a été appliqué."
+    assert etat.exists, message(
+        en="No state file: nothing was applied.",
+        fr="Pas de fichier d'état : rien n'a été appliqué.",
+    )
 
-    assert etat.mode <= MODE_MAXIMAL_ETAT, (
-        f"{ids['REPERTOIRE_TRAVAIL']}/terraform.tfstate est en "
+    assert etat.mode <= MODE_MAXIMAL_ETAT, message(
+        en=f"{ids['REPERTOIRE_TRAVAIL']}/terraform.tfstate is in "
+        f"{oct(etat.mode)}, readable beyond its group. That file contains "
+        "the confidential client's secret IN CLEAR, whatever your `.tf` files "
+        f"may say. At most {oct(MODE_MAXIMAL_ETAT)} was expected.",
+        fr=f"{ids['REPERTOIRE_TRAVAIL']}/terraform.tfstate est en "
         f"{oct(etat.mode)}, lisible au-delà de son groupe. Ce fichier contient "
         "le secret du client confidentiel EN CLAIR, quoi que disent vos "
-        f"fichiers `.tf`. Attendu au plus {oct(MODE_MAXIMAL_ETAT)}."
+        f"fichiers `.tf`. Attendu au plus {oct(MODE_MAXIMAL_ETAT)}.",
     )
 
     # ET LE RÉPERTOIRE, parce qu'un fichier ne suffit pas.
@@ -476,12 +556,17 @@ def test_le_fichier_d_etat_est_protege(idp):
     # Ce qui tient, c'est le répertoire : quoi que l'outil y recrée, personne
     # d'autre n'y entre.
     travail = idp.file(ids["REPERTOIRE_TRAVAIL"])
-    assert travail.mode & 0o007 == 0, (
-        f"{ids['REPERTOIRE_TRAVAIL']} est en {oct(travail.mode)} : tout le "
+    assert travail.mode & 0o007 == 0, message(
+        en=f"{ids['REPERTOIRE_TRAVAIL']} is in {oct(travail.mode)}: everybody "
+        "can enter it. The state file carries the confidential client's "
+        "secret there, and its BACKUP is recreated in 644 on every "
+        "application, whatever rights you had given it. "
+        "Only the directory durably protects what the tool recreates.",
+        fr=f"{ids['REPERTOIRE_TRAVAIL']} est en {oct(travail.mode)} : tout le "
         "monde peut y entrer. Le fichier d'état y porte le secret du client "
         "confidentiel, et sa SAUVEGARDE est recréée en 644 à chaque "
         "application, quels que soient les droits que vous lui aviez donnés. "
-        "Seul le répertoire protège durablement ce que l'outil recrée."
+        "Seul le répertoire protège durablement ce que l'outil recrée.",
     )
 
 
@@ -509,24 +594,33 @@ def test_le_realm_du_socle_n_a_pas_ete_touche(idp):
             continue
         presents = {c.get("clientId") for c in json.loads(brut)}
         fautifs = intrus & presents
-        assert not fautifs, (
-            f"Les clients {sorted(fautifs)} ont été créés dans le realm "
+        assert not fautifs, message(
+            en=f"The clients {sorted(fautifs)} were created in the realm "
+            f"\"{realm}\", which is not the one in the specification. The "
+            "resources' `realm_id` must designate the realm being described, "
+            "not the one where the provider authenticates.",
+            fr=f"Les clients {sorted(fautifs)} ont été créés dans le realm "
             f"« {realm} », qui n'est pas celui du cahier des charges. Le "
             "`realm_id` des ressources doit désigner le realm décrit, et non "
-            "celui où le provider s'authentifie."
+            "celui où le provider s'authentifie.",
         )
 
     # Le realm du socle doit aussi avoir gardé SES propres réglages : un
     # cahier des charges appliqué dessus écraserait sa durée de jeton sans
     # créer aucun client, donc sans que le contrôle ci-dessus le voie.
     formation = _api(idp, ids, jeton, "realms/formation", brut=True)
-    assert formation.strip().startswith("{"), (
-        "Le realm « formation » du socle ne répond plus : "
-        f"{formation[:200]!r}"
+    assert formation.strip().startswith("{"), message(
+        en="The base's \"formation\" realm no longer answers: "
+        f"{formation[:200]!r}",
+        fr="Le realm « formation » du socle ne répond plus : "
+        f"{formation[:200]!r}",
     )
     assert json.loads(formation).get("displayName") != ids[
-        "DISPLAY_NAME_ATTENDU"], (
-        "Le realm « formation » du socle porte le displayName du cahier des "
+        "DISPLAY_NAME_ATTENDU"], message(
+        en="The base's \"formation\" realm carries the specification's "
+        "displayName: the files were applied to it. The thirteen other labs "
+        "use it.",
+        fr="Le realm « formation » du socle porte le displayName du cahier des "
         "charges : les fichiers ont été appliqués sur lui. Les treize autres "
-        "labs s'en servent."
+        "labs s'en servent.",
     )
