@@ -1,0 +1,38 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Tout part : le fournisseur que la candidate a monté, ses volumes, l'annuaire
+# de l'épreuve, les témoins démarrés et l'API de départ. Une épreuve qui
+# laisserait un Keycloak debout rendrait le passage suivant gratuit, et un
+# volume de base de données oublié occuperait le disque sans que personne sache
+# à quoi il sert.
+- name: Nettoyer l'épreuve de niveau 1
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer le travail, l'annuaire et l'API de départ
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier qu'aucun fournisseur d'identité ne répond plus
+      # Le contrôle porte sur l'ÉTAT : un conteneur qui survivrait à la
+      # suppression de son compose répondrait encore, et le port resterait
+      # pris pour le lab suivant.
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8080
+        state: stopped
+        timeout: 60
+
+    - name: Vérifier que l'annuaire de l'épreuve ne répond plus
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 3890
+        state: stopped
+        timeout: 60

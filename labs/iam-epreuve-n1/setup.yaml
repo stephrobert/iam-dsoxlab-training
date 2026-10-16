@@ -1,0 +1,36 @@
+---
+# Joué par `dsoxlab run` avant d'ouvrir la session.
+#
+# COMME LE LAB 02, CETTE ÉPREUVE N'INCLUT PAS LE SOCLE IAM : installer le
+# fournisseur d'identité est sa première question. Elle reçoit la couche
+# machine et les témoins, et rien de plus.
+#
+# Si cette épreuve commençait un jour à être verte avant tout travail, c'est
+# que quelqu'un a ajouté `shared/socle-iam.yml` ici. La bonne correction est de
+# le retirer.
+- name: Préparer l'épreuve de niveau 1
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Installer la couche machine, sans le socle IAM
+      ansible.builtin.include_tasks: ../../shared/machine-docker.yml
+
+    - name: Installer les témoins et les outils de parcours
+      ansible.builtin.include_tasks: ../../shared/temoins.yml
+
+    - name: Lire les versions épinglées
+      ansible.builtin.include_vars:
+        file: ../../shared/images.yml
+        name: images
+
+    - name: Poser la situation de l'épreuve
+      # La trace va dans un journal SUR la machine, avec `set -x` : dsoxlab ne
+      # rend que « non-zero return code » quand un script de mise en situation
+      # échoue, et c'est ce fichier que le validateur relit pour dire pourquoi.
+      ansible.builtin.script: fixtures/prepare.sh
+      args:
+        executable: /bin/bash
+      environment:
+        IMAGE_LLDAP: >-
+          {{ images.lldap.image }}:{{ images.lldap.version }}@{{
+          images.lldap.digest }}

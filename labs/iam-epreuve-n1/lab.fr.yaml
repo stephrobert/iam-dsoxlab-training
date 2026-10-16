@@ -1,0 +1,10 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Épreuve de niveau 1 : monter un fournisseur, fédérer, brancher une application et une API"
+description: |
+  Sans indice. En partant d'une machine avec Docker, d'un annuaire peuplé et de
+  deux témoins qui ne savent rien, installer un fournisseur d'identité durable,
+  fédérer l'annuaire avec ses groupes, brancher l'application témoin en OIDC
+  avec PKCE, et fermer l'API témoin pour qu'elle vérifie signature, issuer,
+  audience, expiration et scope. Noté sur l'état du système, comme le sont les
+  quatre labs dont elle est tirée.
