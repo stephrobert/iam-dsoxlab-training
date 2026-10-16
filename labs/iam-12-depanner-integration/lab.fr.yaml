@@ -1,0 +1,8 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Réparer une intégration qui ne marche plus"
+description: |
+  Une intégration qui fonctionnait est cassée, et le setup a tiré au hasard
+  laquelle des cinq pannes. Lisez ce que le fournisseur dit, décodez ce qu'il
+  envoie, trouvez la cause et corrigez-la. Noté sur la connexion qui remarche
+  ET sur le fait qu'aucun des raccourcis habituels n'a été pris pour y arriver.

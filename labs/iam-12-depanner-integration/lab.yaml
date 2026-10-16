@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-12-depanner-integration
+title: "Repair an integration that stopped working"
+description: |
+  An integration that used to work is broken, and the setup drew which fault at
+  random out of five. Read what the provider says, decode what it sends, find
+  the cause and fix it. Graded on the connection working again AND on none of
+  the usual shortcuts having been taken to get there.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: advanced
+estimated_time: "40m"
+skills:
+  - keycloak
+  - oidc
+  - diagnostic
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/depanner-integration/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # La note porte autant sur CE QUI N'A PAS ÉTÉ FAIT : désactiver une
+  # validation ou élargir une URI fait remarcher l'application et ouvre une
+  # faille.
+  security: true
+  persistence_after_reboot: false

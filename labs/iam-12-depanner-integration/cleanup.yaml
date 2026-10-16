@@ -1,0 +1,54 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Les événements du realm sont remis dans leur état d'origine : les laisser
+# activés ferait grossir la base sans fin sur une machine de formation, et le
+# lab suivant hériterait d'un journal qu'il n'a pas demandé.
+- name: Nettoyer le lab iam-12-depanner-integration
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer le client, le compte et la configuration des événements
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le journal d'événements est bien refermé
+      # Le contrôle porte sur l'ÉTAT : un realm qui garde ses événements
+      # activés accumule des lignes à chaque lab suivant, et personne ne le
+      # remarque avant que la base ne grossisse.
+      ansible.builtin.shell:
+        cmd: |
+          set -u
+          u=$(grep '^KC_BOOTSTRAP_ADMIN_USERNAME=' /opt/socle-iam/.env | cut -d= -f2-)
+          p=$(grep '^KC_BOOTSTRAP_ADMIN_PASSWORD=' /opt/socle-iam/.env | cut -d= -f2-)
+          jeton=$(curl -sS --max-time 20 -X POST \
+            http://127.0.0.1:8080/realms/master/protocol/openid-connect/token \
+            -d grant_type=password -d client_id=admin-cli \
+            -d "username=$u" -d "password=$p" | jq -r '.access_token // empty')
+          curl -sS --max-time 30 \
+            http://127.0.0.1:8080/admin/realms/formation/events/config \
+            -H "Authorization: Bearer $jeton" | jq -r '.eventsEnabled'
+        executable: /bin/bash
+      register: evenements
+      changed_when: false
+
+    - name: Refuser de conclure s'ils restent activés
+      ansible.builtin.assert:
+        that:
+          - evenements.stdout | trim == 'false'
+        fail_msg: >-
+          Le realm « formation » garde ses événements activés
+          ({{ evenements.stdout | trim }}).
+
+    - name: Vérifier que le port du témoin est libéré
+      ansible.builtin.wait_for:
+        port: 9080
+        host: 127.0.0.1
+        state: stopped
+        timeout: 30
