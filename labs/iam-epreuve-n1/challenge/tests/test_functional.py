@@ -113,9 +113,14 @@ def _jeton_admin(hote, cahier: dict[str, str]) -> str:
 
 def _api(hote, cahier: dict[str, str], jeton: str, chemin: str, *,
          brut: bool = False):
+    # L'URL EST QUOTÉE, et ce n'est pas une précaution de style : un chemin
+    # comme `users?username=x&exact=true` contient un `&`, qui coupe la
+    # commande du shell. `curl` part alors sans son en-tête d'autorisation, le
+    # fournisseur répond 401, et le test accuse la fédération de ne pas avoir
+    # importé le compte. Vécu le 2026-10-16.
     res = hote.run(
         f"curl -sS --max-time 30 "
-        f"{cahier['URL_KEYCLOAK_ATTENDUE']}/admin/{chemin} "
+        f"{shlex.quote(cahier['URL_KEYCLOAK_ATTENDUE'] + '/admin/' + chemin)} "
         f"-H {shlex.quote('Authorization: Bearer ' + jeton)}")
     if brut:
         return res.stdout

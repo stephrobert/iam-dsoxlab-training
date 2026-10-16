@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+#
+# `lab_type: capstone` : c'est l'ÉPREUVE FINALE, et il n'y a donc PAS de
+# `challenge/hints.yaml`.
+id: iam-epreuve
+title: "Final exam: an identity, end to end"
+description: |
+  No hints. Starting from a machine with Docker, a populated directory and two
+  witnesses that know nothing, stand up a durable identity provider, federate
+  the directory, wire the application in OIDC with PKCE, close the API, impose
+  a second factor on the sensitive group only, handle a departure all the way
+  through, produce the access review, and leave a backup that restores.
+  Sixteen checks, all on the state of the system.
+section: niveau-2
+level: niveau-2
+lab_type: capstone
+difficulty: advanced
+estimated_time: "120m"
+skills:
+  - keycloak
+  - ldap
+  - oidc
+  - mfa
+  - gouvernance
+  - sauvegarde
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/epreuve-niveau-2/
+certification_tags: []
+# Le pourcentage DU BARÈME à atteindre. Rendu en verdict par `dsoxlab submit`.
+# Fixé après avoir joué l'épreuve en entier : seize contrôles, dont aucun n'est
+# accessoire, et un seuil de 75 laisse passer quatre manques.
+exam_passing_score: 75
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Une API ouverte, un second facteur imposé à personne, une session qui
+  # survit à un départ, une sauvegarde qui ne se restaure pas : chacun de ces
+  # quatre défauts est un défaut de sécurité, et l'épreuve les note comme tels.
+  security: true
+  persistence_after_reboot: false

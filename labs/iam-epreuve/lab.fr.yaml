@@ -1,0 +1,10 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Épreuve finale : une identité de bout en bout"
+description: |
+  Sans indice. En partant d'une machine avec Docker, d'un annuaire peuplé et de
+  deux témoins qui ne savent rien, monter un fournisseur d'identité durable,
+  fédérer l'annuaire, brancher l'application en OIDC avec PKCE, fermer l'API,
+  imposer un second facteur au seul groupe sensible, traiter un départ jusqu'au
+  bout, produire la revue des accès, et laisser une sauvegarde qui se restaure.
+  Seize contrôles, tous sur l'état du système.
