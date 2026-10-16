@@ -1,0 +1,57 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# CE QUI DOIT PARTIR, ET POURQUOI
+#
+# Le cluster, d'abord : il pèse plusieurs centaines de mégaoctets de conteneurs
+# et garde un port publié. Le laisser debout ferait échouer le lab suivant sur
+# un port déjà pris, et personne ne saurait pourquoi.
+#
+# L'accès TLS ensuite, avec `KC_PROXY_HEADERS` : le socle doit revenir à son
+# état nu, celui que les treize autres labs supposent. Un Keycloak qui garde la
+# lecture des en-têtes de proxy change la façon dont il calcule son issuer, et
+# un lab qui ne l'a pas demandé le découvrirait par un jeton refusé.
+- name: Nettoyer le lab iam-14-plateforme
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer le cluster, l'outil, l'accès TLS et les objets du lab
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que la porte TLS ne répond plus
+      # Le contrôle porte sur l'ÉTAT, et non sur la présence du fichier
+      # d'override : un conteneur qui survivrait à la suppression de son
+      # compose répondrait encore.
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8443
+        state: stopped
+        timeout: 60
+
+    - name: Vérifier que le socle répond toujours en HTTP
+      # Le nettoyage recrée Keycloak sans `KC_PROXY_HEADERS`. S'il ne revenait
+      # pas, les labs suivants trouveraient un IdP éteint, et le diagnostic
+      # partirait dans la mauvaise direction.
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/realms/formation/.well-known/openid-configuration
+        status_code: [200]
+      register: socle_nu
+      retries: 30
+      delay: 2
+      until: socle_nu is succeeded
+
+    - name: Vérifier que l'issuer est redevenu celui du socle
+      ansible.builtin.assert:
+        that:
+          - socle_nu.json.issuer == 'http://127.0.0.1:8080/realms/formation'
+        fail_msg: >-
+          L'issuer annoncé par le socle est « {{ socle_nu.json.issuer }} » et
+          non celui attendu. Le nettoyage a laissé une configuration de proxy
+          en place, et le lab suivant en héritera.

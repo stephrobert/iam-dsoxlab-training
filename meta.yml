@@ -133,3 +133,4 @@ sections:
       - iam-07-mfa-keycloak
       - iam-08-depart-collaborateur
       - iam-13-revue-des-acces
+      - iam-14-plateforme

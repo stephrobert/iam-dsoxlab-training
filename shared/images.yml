@@ -72,3 +72,56 @@ lldap:
     ldap: 3890
     ldaps: 6360
     web: 17170
+
+# ── Images du lab iam-14, qui branche une plateforme sur l'IdP ───────────────
+#
+# Elles ne sont PAS du socle : seul ce lab les tire, et son nettoyage les
+# laisse dans le cache sans rien faire tourner. Elles vivent ici quand même,
+# parce que la raison d'épingler par digest ne change pas d'un lab à l'autre.
+#
+# RELEVÉ LE 2026-10-16, sur Docker Hub.
+
+k3s:
+  # Le cluster de test du lab 14, joué par k3d. La version suit la stable de
+  # Kubernetes au relevé (`dl.k8s.io/release/stable.txt` rendait v1.37.1).
+  #
+  # CE QUI DÉCIDE DE CETTE VERSION, et qu'il faut savoir avant de la changer :
+  # en 1.37, les drapeaux `--oidc-issuer-url` et compagnie n'apparaissent plus
+  # dans la ligne de commande de l'apiserver. Seule la CONFIGURATION STRUCTURÉE
+  # (`--authentication-config`, apiVersion apiserver.config.k8s.io/v1beta1)
+  # existe, et elle REFUSE un issuer en http, mot pour mot :
+  #
+  #   invalid authentication configuration: jwt[0].issuer.url: Invalid value:
+  #   "http://10.10.80.11:8080/realms/formation": URL scheme must be https
+  #
+  # C'est la raison pour laquelle ce lab pose un accès TLS devant Keycloak.
+  version: "v1.37.1-k3s1"
+  image: "docker.io/rancher/k3s"
+  digest: "sha256:8d298cb81ca94e875d31e804e5aa10b56355d1d7d95d7e1ef8a8d9239f15ada0"
+  releve_le: "2026-10-16"
+  # Le binaire qui pilote le cluster. Ce n'est pas une image : il est
+  # téléchargé par le setup du lab, et sa version est épinglée pour la même
+  # raison. `--host-alias` exige 5.6 ou plus récent.
+  k3d_version: "v5.9.0"
+  kubectl_version: "v1.37.1"
+
+grafana:
+  # L'outil de plateforme que le lab branche sur le même realm. Choisi parce
+  # qu'il parle OIDC générique, qu'il pèse 150 Mo, et qu'il montre un piège
+  # réel : sans `use_pkce`, il n'envoie pas de `code_challenge`, le client qui
+  # exige PKCE refuse, et l'erreur part AU CALLBACK, donc elle se déguise en
+  # simple retour à la page de connexion.
+  version: "12.3.1"
+  image: "docker.io/grafana/grafana"
+  digest: "sha256:7c064e627d9cb50c3485c9ded5ca0222de89a08e41403322a0c3ca6f1777a8d1"
+  releve_le: "2026-10-16"
+
+nginx:
+  # L'accès TLS devant Keycloak, que le lab 14 pose et que son nettoyage
+  # retire. Il ne sert qu'à donner à l'IdP un issuer en https, ce que le
+  # cluster exige. Le socle, lui, reste en HTTP : voir l'en-tête de
+  # `compose-socle.yaml`.
+  version: "1.29-alpine"
+  image: "docker.io/library/nginx"
+  digest: "sha256:3bcf852aed06467cf075c6105892e4d5a6ebbbafa0ce22d35062db9e90ddef4c"
+  releve_le: "2026-10-16"

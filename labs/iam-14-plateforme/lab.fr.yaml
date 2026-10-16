@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Faire authentifier un cluster et un outil par le fournisseur"
+description: |
+  Configurer le serveur d'API d'un cluster de test pour qu'il fasse confiance
+  au fournisseur d'identité, donner ses droits à un groupe par RBAC sans jamais
+  accorder cluster-admin, et brancher un outil de plateforme sur le même realm.
+  Noté sur le cluster qui accepte un jeton du fournisseur, les droits qui
+  suivent le groupe, et les deux cas d'échec attrapés.

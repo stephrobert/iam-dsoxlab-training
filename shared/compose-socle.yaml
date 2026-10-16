@@ -7,10 +7,20 @@
 # CE QUI N'EST PAS ICI, ET POURQUOI
 #
 # Pas de reverse proxy, pas de TLS, pas de `KC_HOSTNAME` derrière un port
-# publié : c'est le sujet de `iam-09-sauvegarde-montee-version`, qui porte sur
-# l'exploitation en production. Un socle qui le fournirait priverait ce lab de
-# son objet. Les essais de la leçon « production » montrent le montage complet,
-# avec Caddy et deux noms d'hôte distincts, et c'est là qu'il appartient.
+# publié : la leçon d'installation décrit cette situation, et c'est elle que le
+# socle reproduit. Les essais de la leçon « production » montrent le montage
+# complet, avec Caddy et deux noms d'hôte distincts.
+#
+# UN LAB A BESOIN DE TLS, ET IL LE POSE LUI-MÊME : `iam-14-plateforme`, parce
+# qu'un apiserver Kubernetes REFUSE un issuer en http. Son setup ajoute un
+# accès TLS devant Keycloak et son nettoyage le retire, ce qui laisse les
+# autres labs sur le port 8080 inchangé. Mesuré le 2026-10-16 : Keycloak
+# calcule son issuer depuis la requête, donc les deux portes coexistent et
+# annoncent chacune le sien.
+#
+# Une version antérieure de cet en-tête attribuait le TLS au lab
+# `iam-09-sauvegarde-montee-version`. C'était faux : sa fiche porte sur la
+# sauvegarde et la montée de version, et ne mentionne ni proxy ni certificat.
 #
 # Keycloak écoute donc en HTTP sur la machine, derrière son pare-feu de VM, ce
 # qui est exactement la situation que la leçon d'installation décrit avant
