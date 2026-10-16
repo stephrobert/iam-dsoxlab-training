@@ -1,0 +1,64 @@
+-- version du schema apres la montee (derniere ligne de migration_model)
+26.8.1
+-- version annoncee par le serveur
+Logging into http://localhost:8080 as user temp-admin of realm master
+
+"26.8.1"
+
+##### 6a. Compte administrateur perdu (simulation : le seul admin est supprime)
+temp-admin supprime
+connexion temp-admin apres suppression: HTTP 400
+-- recuperation : arret du serveur, puis bootstrap-admin dans un conteneur jetable, memes options de base
+ Container prod-keycloak-1 Stopped 
+ Container prod-keycloak-run-5be8daccf0e7 Creating 
+ Container prod-keycloak-run-5be8daccf0e7 Created 
+Changes detected in configuration. Updating the server image.
+Updating the configuration and installing your custom providers, if any. Please wait.
+2026-10-15 20:09:31,398 INFO  [io.quarkus.deployment.QuarkusAugmentor] (main) Quarkus augmentation completed in 7422ms
+Server configuration updated and persisted. Run the following command to review the configuration:
+	kc.sh show-config
+Next time you run the server, just add --optimized to the command to ensure this build is used.
+2026-10-15 20:09:32,900 WARN  [org.keycloak.models.sessions.infinispan.InfinispanStickySessionEncoderProviderFactory] (main) The option `shouldAttachRoute` is deprecated and will be removed in a future release. Disable it by setting `spi-sticky-sessi
+2026-10-15 20:09:33,995 INFO  [org.infinispan.CONTAINER] (main) ISPN000974: Virtual threads support: enabled
+2026-10-15 20:09:34,839 INFO  [org.hibernate.orm.jdbc.batch] (JPA Startup Thread) HHH100501: Automatic JDBC statement batching enabled (maximum batch size 32)
+2026-10-15 20:09:34,878 WARNING [io.opentelemetry.usage] (main) OpenTelemetry API usage issue detected. To see more details, enable FINEST logging for io.opentelemetry.usage. Stacktraces are includes to identify the offending call site.
+2026-10-15 20:09:36,136 INFO  [org.infinispan.CONTAINER] (main) ISPN000556: Starting user marshaller 'org.infinispan.commons.marshall.ImmutableProtoStreamMarshaller'
+2026-10-15 20:09:36,455 INFO  [org.keycloak.connections.infinispan.DefaultInfinispanConnectionProviderFactory] (main) Node name: node_413538, Site name: null, Cluster name: ISPN
+2026-10-15 20:09:36,733 INFO  [org.keycloak.services.resources.KeycloakApplication] (main) Bootstrap completed in 1.789000 seconds
+2026-10-15 20:09:36,779 INFO  [io.quarkus] (main) Keycloak 26.8.1 on JVM (powered by Quarkus 3.40.1) started in 5.248s. Listening on: . Management interface listening on http://0.0.0.0:9000.
+2026-10-15 20:09:36,779 INFO  [io.quarkus] (main) Profile nonserver activated. 
+2026-10-15 20:09:36,779 INFO  [io.quarkus] (main) Installed features: [agroal, cdi, hibernate-orm, jdbc-postgresql, keycloak, micrometer, narayana-jta, opentelemetry, rest, rest-jackson, smallrye-context-propagation, smallrye-health, vertx]
+2026-10-15 20:09:36,954 INFO  [org.keycloak.services] (main) KC-SERVICES0077: Created temporary admin user with username secours
+2026-10-15 20:09:37,977 INFO  [com.arjuna.ats.jbossatx] (main) ARJUNA032014: Stopping transaction recovery manager
+2026-10-15 20:09:37,986 INFO  [io.quarkus] (main) Keycloak stopped in 1.024s
+ Container prod-proxy-1 Starting 
+ Container prod-proxy-1 Started 
+pret apres 4x2s
+connexion secours: HTTP 200
+["formation","master"]
+-- le compte est temporaire : la console le signale, et il faut le remplacer
+-- remplacement par un compte permanent nominatif, puis suppression du compte de secours
+Logging into http://localhost:8080 as user secours of realm master
+Created new user with id 'e07a11e1-e92b-4168-a385-960f6ba3b290'
+compte de secours supprime
+HTTP 401 Unauthorized
+
+
+##### 7. Panne de l'IdP
+{"iat":1792094993,"exp":1792095293,"duree":300}
+-- Keycloak en marche
+signature et issuer valides ; exp dans 300 s
+-- docker compose stop keycloak
+ Container prod-keycloak-1 Stopped 
+-- jeton deja emis, verifie avec la copie locale du JWKS
+signature et issuer valides ; exp dans 298 s
+-- application qui recupere le JWKS a chaque verification
+GET .../certs : HTTP 502
+-- nouvelle connexion
+POST .../token (password) : HTTP 502
+-- renouvellement par refresh token
+POST .../token (refresh) : HTTP 502
+-- redemarrage
+ Container prod-keycloak-1 Started 
+pret apres 4x2s
+{"refresh_ok":true,"error":null}

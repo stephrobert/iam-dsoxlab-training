@@ -1,0 +1,19 @@
+ Container prod-db-1 Starting 
+ Container prod-db-1 Started 
+ Container prod-db-1 Waiting 
+ Container prod-db-1 Healthy 
+ Container prod-keycloak-1 Starting 
+ Container prod-keycloak-1 Started 
+ Container prod-proxy-1 Starting 
+ Container prod-proxy-1 Started 
+pret apres 9x2s
+SERVICE    IMAGE                                                                                                      STATUS                    PORTS
+db         postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685                 Up 25 seconds (healthy)   5432/tcp
+keycloak   quay.io/keycloak/keycloak:26.7.0@sha256:0f198be292568439d700cdbfb893e69a6009bb43a94a06a945b1d3d506c76b13   Up 19 seconds             8080/tcp, 8443/tcp, 9000/tcp
+proxy      caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f                Up 19 seconds             80/tcp, 2019/tcp, 443/udp, 127.0.0.1:18443->443/tcp, 127.0.0.1:19443->9443/tcp
+=== journal Keycloak (extraits)
+keycloak-1  | 2026-10-15 20:02:04,608 WARN  [org.keycloak.common.Profile] (build-4) Deprecated features identity-brokering-api:v1, twitter-broker:v1 enabled by default. Check the upgrading guide for steps to use later versions if available.
+keycloak-1  | 2026-10-15 20:02:11,738 WARN  [org.keycloak.common.Profile] (executor-thread-1) Deprecated features identity-brokering-api:v1, twitter-broker:v1 enabled by default. Check the upgrading guide for steps to use later versions if available.
+keycloak-1  | 2026-10-15 20:02:11,814 INFO  [io.quarkus] (main) Keycloak 26.7.0 on JVM (powered by Quarkus 3.33.2.1) started in 3.066s. Listening on: http://0.0.0.0:8080. Management interface listening on http://0.0.0.0:9000.
+keycloak-1  | 2026-10-15 20:02:11,814 INFO  [io.quarkus] (main) Profile prod activated. 
+keycloak-1  | 2026-10-15 20:02:20,755 INFO  [org.keycloak.services] (executor-thread-1) KC-SERVICES0077: Created temporary admin user with username temp-admin

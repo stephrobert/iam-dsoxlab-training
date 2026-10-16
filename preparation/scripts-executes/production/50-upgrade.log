@@ -1,0 +1,41 @@
+##### 5a. Avant : serveur arrete, sauvegarde fraiche, etat de reference
+ Container prod-keycloak-1 Stopped 
+250598 backup/avant-26.8.1.dump
+version du schema (migration_model) : 26.7.0
+utilisateurs=3 clients=14 realms=formation,master
+
+##### 5b. Changement d'image (tag ET digest) dans compose.yaml
+  19c19
+  <     image: quay.io/keycloak/keycloak:26.7.0@sha256:0f198be292568439d700cdbfb893e69a6009bb43a94a06a945b1d3d506c76b13
+  ---
+  >     image: quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244
+Status: Image is up to date for quay.io/keycloak/keycloak@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244
+quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244
+ Container prod-keycloak-1 Starting 
+ Container prod-keycloak-1 Started 
+ Container prod-proxy-1 Starting 
+ Container prod-proxy-1 Started 
+pret apres 7x2s
+duree de la montee jusqu'a /health/ready : 15s
+-- journal de la migration
+keycloak-1  | 2026-10-15 20:08:21,956 INFO  [io.quarkus] (main) Keycloak 26.8.1 on JVM (powered by Quarkus 3.40.1) started in 3.252s. Listening on: http://0.0.0.0:8080. Management interface listening on http://0.0.0.0:9000.
+keycloak-1  | 2026-10-15 20:08:22,760 INFO  [org.keycloak.quarkus.runtime.storage.database.liquibase.QuarkusJpaUpdaterProvider] (executor-thread-1) Updating database. Using changelog META-INF/jpa-changelog-master.xml
+keycloak-1  | 2026-10-15 20:08:24,559 INFO  [org.keycloak.storage.datastore.DefaultMigrationManager] (executor-thread-1) Migrating older model to 26.8.0
+keycloak-1  | 2026-10-15 20:08:25,738 INFO  [org.keycloak.migration.migrators.RealmMigration] (executor-thread-1) migrated realm formation to 26.8.0
+keycloak-1  | 2026-10-15 20:08:25,738 INFO  [org.keycloak.migration.migrators.RealmMigration] (executor-thread-1) migrated realm master to 26.8.0
+
+##### 5c. Apres : memes verifications
+version du schema (migration_model) : 26.7.0
+26.8.1
+utilisateurs=3 clients=14 realms=formation,master
+https://auth.lab.test:18443/realms/formation
+{"token_type":"Bearer","expires_in":300,"connexion_ok":true}
+-- le refresh token pris AVANT la montee fonctionne-t-il ?
+{"refresh_ok":true,"error":null}
+-- version annoncee par le serveur
+Logging into http://localhost:8080 as user temp-admin of realm master
+
+{"version":null}
+-- admin console : refus public conserve ?
+public /admin/master/console/: 403
+admin /admin/master/console/: 200

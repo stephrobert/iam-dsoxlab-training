@@ -1,0 +1,112 @@
+{
+ "keycloak-production": [
+  {
+   "type": "qcm",
+   "intitule": "Quelles options faut-il pour faire tourner Keycloak 26 en mode start derrière un proxy qui termine TLS ?",
+   "choix": [
+    "KC_HOSTNAME en URL complète, KC_HTTP_ENABLED=true et KC_PROXY_HEADERS=xforwarded",
+    "KC_HOSTNAME_STRICT=false seul, le proxy se chargeant ensuite de tout le reste",
+    "KC_HTTP_ENABLED=false et un certificat TLS déposé dans le conteneur Keycloak",
+    "La commande start-dev, qui active automatiquement tout ce qu'il faut ici"
+   ],
+   "reponse": "KC_HOSTNAME en URL complète, KC_HTTP_ENABLED=true et KC_PROXY_HEADERS=xforwarded",
+   "explication": "Le mode **start** refuse de démarrer sans **KC_HOSTNAME** ni choix TLS ou HTTP. Derrière un proxy qui termine TLS, **KC_HTTP_ENABLED=true** autorise le HTTP interne et **KC_PROXY_HEADERS=xforwarded** fait faire confiance aux en-têtes du proxy, et c'est **KC_HOSTNAME** en URL complète qui fixe un issuer en https.",
+   "section": "Comment placer Keycloak derrière un reverse proxy TLS ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  },
+  {
+   "type": "qcm",
+   "intitule": "Que recommande la documentation de Keycloak pour les chemins exposés sur Internet ?",
+   "choix": [
+    "Exposer /realms/, /resources/ et /.well-known/, garder /admin/ et /realms/master/ en interne",
+    "Tout exposer : le mot de passe de l'administrateur suffit à protéger la console depuis Internet",
+    "Exposer uniquement /admin/ pour que les applications puissent se connecter à Keycloak",
+    "Exposer /metrics et /health pour permettre une supervision depuis l'extérieur du réseau"
+   ],
+   "reponse": "Exposer /realms/, /resources/ et /.well-known/, garder /admin/ et /realms/master/ en interne",
+   "explication": "La documentation du **reverse proxy** liste ces trois chemins comme nécessaires aux applications et garde **/admin/**, **/realms/master/**, **/metrics** et **/health** en interne. Dans le lab, tout chemin non listé reçoit un **403** sur l'adresse publique.",
+   "section": "Comment restreindre la console d'administration ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  },
+  {
+   "type": "qcm",
+   "intitule": "Où répondent /health/ready et /metrics, et comment les joindre sans les exposer ?",
+   "choix": [
+    "Sur le port 8080, derrière le proxy public protégé par un mot de passe",
+    "Sur le port 9000, atteint par le réseau interne sans publier ce port",
+    "Sur le port 8443, après avoir activé le TLS directement dans Keycloak lui-même",
+    "Sur le port 80 du proxy, avec un filtrage par l'en-tête Host"
+   ],
+   "reponse": "Sur le port 9000, atteint par le réseau interne sans publier ce port",
+   "explication": "Avec **KC_HEALTH_ENABLED** et **KC_METRICS_ENABLED**, ces endpoints vivent sur le **port de gestion 9000**. Sur le 8080 ils répondent **404**, et la documentation précise qu'on ne proxifie pas le 9000 : la supervision le joint par le réseau interne.",
+   "section": "Où sont la santé et les métriques ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  },
+  {
+   "type": "qcm",
+   "intitule": "Que ne contient pas un export produit par kc.sh export ?",
+   "choix": [
+    "Les sessions persistées et les événements",
+    "Les clients du realm avec leurs rôles et leurs scopes",
+    "Les utilisateurs du realm avec leurs mots de passe hachés",
+    "Les clés de signature et la configuration du realm"
+   ],
+   "reponse": "Les sessions persistées et les événements",
+   "explication": "La documentation de l'export précise qu'il n'inclut **ni événements, ni sessions persistées**, ni jetons révoqués. En revanche le fichier contient les clients, les utilisateurs avec leurs **secrets hachés** et les **clés privées** du realm, donc il se protège comme un secret.",
+   "section": "Que sauvegarder, et pourquoi l'export de realm ne suffit pas ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  },
+  {
+   "type": "qcm",
+   "intitule": "Que faire avant de remplacer l'image 26.7.0 par la 26.8.1 ?",
+   "choix": [
+    "Rien : la migration du schéma se défait simplement en relançant l'ancienne image",
+    "Arrêter Keycloak et sauvegarder la base, faute de retour arrière possible",
+    "Exporter le realm au format JSON, ce qui suffit ensuite à revenir en arrière",
+    "Supprimer le volume PostgreSQL pour repartir d'une base propre"
+   ],
+   "reponse": "Arrêter Keycloak et sauvegarder la base, faute de retour arrière possible",
+   "explication": "Le schéma migré n'est **plus compatible** avec l'ancienne version et Keycloak ne gère pas le retour arrière : on sauvegarde la base **serveur arrêté**. Lancer la 26.7.0 sur une base migrée ne produit qu'un **avertissement**, pas une protection.",
+   "section": "Comment monter de la 26.7.0 à la 26.8.1 ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  },
+  {
+   "type": "qcm",
+   "intitule": "Comment recréer un administrateur dans le realm master quand le compte est perdu ?",
+   "choix": [
+    "Relancer en start-dev sur la même base pour changer le mot de passe",
+    "Serveur arrêté, kc.sh bootstrap-admin user avec les mêmes options de base",
+    "Changer KC_BOOTSTRAP_ADMIN_PASSWORD, que Keycloak relit à chaque redémarrage",
+    "Supprimer le realm master puis importer un export de realm"
+   ],
+   "reponse": "Serveur arrêté, kc.sh bootstrap-admin user avec les mêmes options de base",
+   "explication": "Les variables **KC_BOOTSTRAP_ADMIN_*** ne servent qu'à la création du realm master. Pour un compte perdu, la documentation prévoit **kc.sh bootstrap-admin user**, nœuds arrêtés et avec les mêmes options de base de données ; le compte créé est **temporaire** et se remplace par un compte nominatif.",
+   "section": "Comment retrouver un accès administrateur perdu ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  },
+  {
+   "type": "vf",
+   "intitule": "Quand Keycloak est arrêté, un jeton d'accès déjà émis reste vérifiable jusqu'à son exp par une API qui garde une copie du JWKS.",
+   "reponse": "Vrai",
+   "explication": "La signature se vérifie **hors ligne** avec les clés publiques en copie : le jeton est valide jusqu'à **exp**. En revanche, **nouvelles connexions** et **renouvellements** par refresh token échouent tant que l'IdP est arrêté (502 observé au proxy).",
+   "section": "Que se passe-t-il quand Keycloak tombe ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  },
+  {
+   "type": "vf",
+   "intitule": "Un export de realm obtenu avec kc.sh export suffit comme sauvegarde complète d'un Keycloak.",
+   "reponse": "Faux",
+   "explication": "L'export ne porte **ni sessions, ni événements**, ni le realm master, et n'est cohérent que serveur arrêté. La sauvegarde de référence est le **pg_dump** de la base, dont la restauration a permis d'accepter un refresh token pris avant la sauvegarde.",
+   "section": "Que sauvegarder, et pourquoi l'export de realm ne suffit pas ?",
+   "url": "/docs/services/identite/keycloak/production/",
+   "level": "intermediaire"
+  }
+ ]
+}

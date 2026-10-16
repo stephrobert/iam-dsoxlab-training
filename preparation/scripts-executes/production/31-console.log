@@ -1,0 +1,16 @@
+-- configuration injectee dans la console (adresse d'administration)
+"adminBaseUrl": "https://admin.lab.test:19443"
+"authServerUrl": "https://auth.lab.test:18443"
+"authUrl": "https://admin.lab.test:19443"
+"realm": "master"
+"resourceUrl": "/resources/wdtqm/admin/keycloak.v2"
+"serverBaseUrl": "https://auth.lab.test:18443"
+-- page de connexion master servie par l'adresse d'administration
+auth master via admin: 302
+-- jeton administrateur via l'adresse d'administration (password grant sur admin-cli)
+token master via admin: 400
+-- meme appel via l'adresse publique
+token master via public: 403
+-- API d'administration via adresse publique / admin
+public /admin/realms: 403
+admin /admin/realms (sans jeton): 401

@@ -2,7 +2,7 @@
 
 | Champ | Valeur |
 |---|---|
-| Leçon d'accueil (`doc_url`) | `(leçon à écrire) « Keycloak en production »` |
+| Leçon d'accueil (`doc_url`) | `/docs/services/identite/keycloak/production/` |
 | Compétence (provisoire) | `iam.idp.operate` |
 | Durée visée | ~60 min (à **mesurer** en jouant le lab) |
 | Prérequis | lab 2 |

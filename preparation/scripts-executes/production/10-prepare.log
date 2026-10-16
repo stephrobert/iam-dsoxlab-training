@@ -1,0 +1,4 @@
+X509v3 Subject Alternative Name: 
+    DNS:auth.lab.test, DNS:admin.lab.test
+compose valide
+ports 18443 et 19443 libres

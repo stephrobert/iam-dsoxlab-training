@@ -1,0 +1,10 @@
+-- sessions dans la base (offline_flag : true = hors ligne, false = session classique)
+0|4
+pg_restore: 0
+ Container prod-kc-restore Creating 
+ Container prod-kc-restore Created 
+tentatives: 7
+2026-10-15 20:07:02,317 INFO  [io.quarkus] (main) Keycloak 26.7.0 on JVM (powered by Quarkus 3.33.2.1) started in 2.860s. Listening on: http://0.0.0.0:8080. Management interface listening on http://0.0.0.0:9000.
+{"token_type":"Bearer","expires_in":300,"ok":true}
+{"refresh_ok":true,"error":null}
+base de restauration supprimee

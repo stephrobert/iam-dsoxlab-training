@@ -1,0 +1,15 @@
+Changes detected in configuration. Updating the server image.
+WARNING: With HTTPS not enabled, `proxy-headers` unset, and `hostname-strict=false`, the server is running in an insecure context. Secure contexts are required for full functionality, including cross-origin cookies. Also if you are using a proxy, requests from the proxy to the server will fail CORS checks with 403s because the wrong origin will be determined. Make sure `proxy-headers` are configured properly.
+Updating the configuration and installing your custom providers, if any. Please wait.
+2026-10-15 20:12:51,164 WARN  [org.keycloak.common.Profile] (build-27) Deprecated features identity-brokering-api:v1, twitter-broker:v1 enabled by default. Check the upgrading guide for steps to use later versions if available.
+2026-10-15 20:12:55,439 INFO  [io.quarkus.deployment.QuarkusAugmentor] (main) Quarkus augmentation completed in 6158ms
+Server configuration updated and persisted. Run the following command to review the configuration:
+
+	kc.sh show-config
+
+Next time you run the server, just add --optimized to the command to ensure this build is used.
+WARNING: With HTTPS not enabled, `proxy-headers` unset, and `hostname-strict=false`, the server is running in an insecure context. Secure contexts are required for full functionality, including cross-origin cookies. Also if you are using a proxy, requests from the proxy to the server will fail CORS checks with 403s because the wrong origin will be determined. Make sure `proxy-headers` are configured properly.
+ERROR: Failed to start server in (production) mode
+ERROR: Failed to start quarkus
+ERROR: hostname is not configured; either configure hostname, or set hostname-strict to false
+For more details run the same command passing the '--verbose' option. Also you can use '--help' to see the details about the usage of the particular command.

@@ -1,0 +1,128 @@
+Docker Compose version v5.0.0
+OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+Status: Image is up to date for quay.io/keycloak/keycloak@sha256:0f198be292568439d700cdbfb893e69a6009bb43a94a06a945b1d3d506c76b13
+quay.io/keycloak/keycloak:26.7.0@sha256:0f198be292568439d700cdbfb893e69a6009bb43a94a06a945b1d3d506c76b13
+Status: Downloaded newer image for postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+docker.io/library/postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+Status: Downloaded newer image for caddy@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+docker.io/library/caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+Status: Downloaded newer image for curlimages/curl@sha256:a134550be58ab783810e613ae96fd253c38f7bdd16d9bf9be350700c7a29ac06
+docker.io/curlimages/curl:8.23.0@sha256:a134550be58ab783810e613ae96fd253c38f7bdd16d9bf9be350700c7a29ac06
+=== start --help (options ciblées)
+--hostname <hostname|URL>
+                     Address at which is the server exposed. Can be a full URL, or just a hostname.
+                       When only hostname is provided, scheme, port and context path are resolved
+                       from the request. Available only when hostname:v2 feature is enabled.
+--hostname-admin <URL>
+                     Address for accessing the administration console. Use this option if you are
+                       exposing the administration console using a reverse proxy on a different
+                       address than specified in the 'hostname' option. Available only when
+--
+--hostname-backchannel-dynamic <true|false>
+                     Enables dynamic resolving of backchannel URLs, including hostname, scheme,
+                       port and context path. Set to true if your application accesses Keycloak via
+                       a private network. If set to true, 'hostname' option needs to be specified
+--
+--hostname-debug <true|false>
+                     Toggles the hostname debug page that is accessible at
+                       /realms/master/hostname-debug. Default: false. Available only when hostname:
+                       v2 feature is enabled.
+--hostname-strict <true|false>
+                     Disables dynamically resolving the hostname from request headers. Should
+                       always be set to true in production, unless your reverse proxy overwrites
+                       the Host header. If enabled, the 'hostname' option needs to be specified.
+--
+--http-enabled <true|false>
+                     Enables the HTTP listener. Enabled by default in development mode. Typically
+                       not enabled in production unless the server is fronted by a TLS termination
+                       proxy. Default: false.
+--
+--health-enabled <true|false>
+                     If the server should expose health check endpoints. If enabled, health checks
+                       are available at the '/health', '/health/ready' and '/health/live'
+                       endpoints. Default: false.
+--
+--metrics-enabled <true|false>
+                     If the server should expose metrics. If enabled, metrics are available at the
+                       '/metrics' endpoint. Default: false.
+
+--
+--proxy-headers <headers>
+                     The proxy headers that should be accepted by the server. Misconfiguration
+                       might leave the server exposed to security vulnerabilities. Takes precedence
+                       over the deprecated proxy option. Possible values are: forwarded, xforwarded.
+--
+--bootstrap-admin-username <username>
+                     Temporary bootstrap admin username. Used only when the master realm is
+                       created. Available only when bootstrap admin password is set. Default:
+                       temp-admin.
+=== bootstrap-admin --help
+Commands for bootstrapping admin access
+
+Usage:
+
+kc.sh bootstrap-admin [OPTIONS] [COMMAND]
+
+Commands for bootstrapping admin access
+
+Options:
+
+-h, --help           This help message.
+--no-prompt          Run non-interactive without prompting
+-v, --verbose        Print out error details when running this command.
+
+Commands:
+
+  user     Add an admin user with a password
+  service  Add an admin service account
+Add an admin user with a password
+
+Usage:
+
+kc.sh bootstrap-admin user [OPTIONS]
+
+Add an admin user with a password
+
+Options:
+
+-h, --help           This help message.
+--help-all           This same help message but with additional options.
+--no-prompt          Run non-interactive without prompting
+--optimized          Use this option to achieve an optimal startup time if you have previously
+                       built a server image using the 'build' command.
+--password:env <PASSWORD>
+                     Environment variable name for the admin user password
+--username <username>
+                     Username of admin user, defaults to temp-admin
+--username:env <USERNAME>
+                     Environment variable name for the admin username
+-v, --verbose        Print out error details when running this command.
+
+Config:
+
+--config-keystore <config-keystore>
+                     Specifies a path to the KeyStore Configuration Source.
+--config-keystore-password <config-keystore-password>
+                     Specifies a password to the KeyStore Configuration Source.
+--config-keystore-type <config-keystore-type>
+                     Specifies a type of the KeyStore Configuration Source. Default: PKCS12.
+
+Database:
+
+--db <vendor>        The database vendor. In production mode the default value of 'dev-file' is
+                       deprecated, you should explicitly specify the db instead. Possible values
+                       are: dev-file, dev-mem, mariadb, mssql, mysql, oracle, postgres, tidb.
+                       Default: dev-file.
+--db-connect-timeout <timeout>
+                     Sets the JDBC driver connection timeout and login timeout. May be an ISO 8601
+=== export --help
+--dir <dir>          Set the path to a directory where files will be created with the exported data.
+--file <file>        Set the path to a file that will be created with the exported data. To export
+                       more than 50000 users, export to a directory with different files instead.
+--realm <realm>      Set the name of the realm to export. If not set, all realms are going to be
+                       exported.
+--users <strategy>   Set how users should be exported. Possible values are: skip, realm_file,
+                       same_file, different_files. Default: different_files.
+--users-per-file <number>
+                     Set the number of users per file. It is used only if 'users' is set to
+                       'different_files'. Default: 50.

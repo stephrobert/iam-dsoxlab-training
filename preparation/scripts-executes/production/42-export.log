@@ -1,0 +1,40 @@
+##### Export du realm formation (serveur arrete)
+ Container prod-keycloak-1 Stopping 
+ Container prod-keycloak-1 Stopped 
+2026-10-15 20:07:36,757 INFO  [org.keycloak.exportimport.dir.DirExportProvider] (main) Exporting into directory /export
+2026-10-15 20:07:36,799 INFO  [org.keycloak.exportimport.dir.DirExportProvider] (main) Realm 'formation' - data exported
+2026-10-15 20:07:36,874 INFO  [org.keycloak.services] (main) KC-SERVICES0035: Export finished successfully
+80134 formation-realm.json
+1895 formation-users-0.json
+-- cles de premier niveau du fichier de realm (extrait)
+accessCodeLifespan accessCodeLifespanLogin accessCodeLifespanUserAction accessTokenLifespan accessTokenLifespanForImplicitFlow actionTokenGeneratedByAdminLifespan actionTokenGeneratedByUserLifespan ad
+minEventsDetailsEnabled adminEventsEnabled adminPermissionsEnabled attributes authenticationFlows authenticatorConfig browserFlow browserSecurityHeaders bruteForceProtected bruteForceStrategy clientAu
+thenticationFlow clientOfflineSessionIdleTimeout clientOfflineSessionMaxLifespan clientPolicies clientProfiles clientScopeMappings clientScopes clientSessionIdleTimeout clientSessionMaxLifespan client
+s components defaultDefaultClientScopes defaultOptionalClientScopes defaultRole defaultSignatureAlgorithm directGrantFlow dockerAuthenticationFlow duplicateEmailsAllowed editUsernameAllowed enabled en
+abledEventTypes eventsEnabled eventsListeners failureFactor firstBrokerLoginFlow groups id identityProviderMappers identityProviders internationalizationEnabled keycloakVersion localizationTexts login
+WithEmailAllowed maxDeltaTimeSeconds maxFailureWaitSeconds maxSecondaryAuthFailures maxTemporaryLockouts minimumQuickLoginWaitSeconds notBefore oauth2DeviceCodeLifespan oauth2DevicePollingInterval off
+lineSessionIdleTimeout offlineSessionMaxLifespan offlineSessionMaxLifespanEnabled organizationsEnabled otpPolicyAlgorithm otpPolicyCodeReusable otpPolicyDigits otpPolicyInitialCounter otpPolicyLookAhe
+adWindow otpPolicyPeriod otpPolicyType otpSupportedApplications permanentLockout quickLoginCheckMilliSeconds realm refreshTokenMaxReuse registrationAllowed registrationEmailAsUsername registrationFlow
+ rememberMe requiredActions requiredCredentials resetCredentialsFlow resetPasswordAllowed revokeRefreshToken roles scimApiEnabled scopeMappings smtpServer sslRequired ssoSessionIdleTimeout ssoSessionI
+dleTimeoutRememberMe ssoSessionMaxLifespan ssoSessionMaxLifespanRememberMe userManagedAccessAllowed verifiableCredentialsEnabled verifyEmail waitIncrementSeconds webAuthnPolicyAcceptableAaguids webAut
+hnPolicyAttestationConveyancePreference webAuthnPolicyAuthenticatorAttachment webAuthnPolicyAvoidSameAuthenticatorRegister webAuthnPolicyCreateTimeout webAuthnPolicyExtraOrigins webAuthnPolicyPassword
+lessAcceptableAaguids webAuthnPolicyPasswordlessAttestationConveyancePreference webAuthnPolicyPasswordlessAuthenticatorAttachment webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister webAuthnPolic
+yPasswordlessCreateTimeout webAuthnPolicyPasswordlessExtraOrigins webAuthnPolicyPasswordlessRequireResidentKey webAuthnPolicyPasswordlessResidentKey webAuthnPolicyPasswordlessRpEntityName webAuthnPoli
+cyPasswordlessRpId webAuthnPolicyPasswordlessSignatureAlgorithms webAuthnPolicyPasswordlessUserVerificationRequirement webAuthnPolicyRequireResidentKey webAuthnPolicyResidentKey webAuthnPolicyRpEntity
+Name webAuthnPolicyRpId webAuthnPolicySignatureAlgorithms webAuthnPolicyUserVerificationRequirement
+-- evenements ou sessions dans l'export ?
+reglage eventsEnabled present: true
+false false false false 
+-- utilisateurs exportes
+alice credentials=1
+bob credentials=1
+-- le secret hache d'un mot de passe est-il dans l'export ?
+createdDate credentialData id secretData type
+-- cles de signature du realm (composants) dans l'export ?
+rsa-enc-generated rsa-enc-generated privateKey=true
+hmac-generated-hs512 hmac-generated privateKey=false
+rsa-generated rsa-generated privateKey=true
+aes-generated aes-generated privateKey=false
+-- realm master dans l'export ?
+0
+-- taille de l'export : 88 Ko ; dump : 248 Ko

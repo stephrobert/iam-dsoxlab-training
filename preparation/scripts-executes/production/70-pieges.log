@@ -1,0 +1,10 @@
+##### piege A : start sans hostname (HTTP active, pas de TLS)
+WARNING: With HTTPS not enabled, `proxy-headers` unset, and `hostname-strict=false`, the server is running in an insecure context. Secure contexts are required for full functionality, including cross-origin cookies. Also if you are using a proxy, requests from the proxy to the server will fail CORS 
+WARNING: With HTTPS not enabled, `proxy-headers` unset, and `hostname-strict=false`, the server is running in an insecure context. Secure contexts are required for full functionality, including cross-origin cookies. Also if you are using a proxy, requests from the proxy to the server will fail CORS 
+ERROR: Failed to start server in (production) mode
+ERROR: Failed to start quarkus
+##### piege B : start sans hostname ni HTTP ni certificat
+Key material not provided to setup HTTPS. Please configure your keys/certificates, or if HTTPS access is not needed see the `http-enabled` option. If you meant to start the server in development mode, see the `start-dev` command.
+##### piege C : start-dev (avertissement du journal)
+Running the server in development mode. DO NOT use this configuration in production.
+2026-10-15 20:12:33,976 INFO  [io.quarkus] (main) Keycloak 26.7.0 on JVM (powered by Quarkus 3.33.2.1) started in 8.496s. Listening on: http://0.0.0.0:8080

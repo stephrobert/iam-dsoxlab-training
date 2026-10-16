@@ -1,0 +1,78 @@
+##### Preparation du realm formation (kcadm dans le conteneur, port 8080 interne)
+Logging into http://localhost:8080 as user temp-admin of realm master
+Created new realm with id 'formation'
+Created new user with id '9f0e2bbf-6944-49b2-a5d9-f43296c0b22e'
+Created new client with id '2b054dc0-74a6-4f5b-bbcf-8dc1015689fc'
+
+##### 1. Document de decouverte via le proxy public
+HTTP 200
+https://auth.lab.test:18443/realms/formation
+https://auth.lab.test:18443/realms/formation/protocol/openid-connect/auth
+https://auth.lab.test:18443/realms/formation/protocol/openid-connect/token
+https://auth.lab.test:18443/realms/formation/protocol/openid-connect/certs
+-- valeurs-URL qui ne commencent PAS par l'adresse publique :
+-- nombre de valeurs http:// (non chiffrees) :
+0
+-- nombre total de valeurs-URL :
+21
+
+##### 1b. Le Host de la requete ne change pas l'issuer (hostname strict)
+https://auth.lab.test:18443/realms/formation
+
+##### 1c. Jeton obtenu par l'adresse publique : claim iss
+{"iss":"https://auth.lab.test:18443/realms/formation","azp":"appli","typ":"Bearer"}
+
+##### 2. Console d'administration : adresse publique
+public /admin/master/console/                          403
+public /admin/                                         403
+public /realms/master/.well-known/openid-configuration 403
+public /health/ready                                   403
+public /metrics                                        403
+public /                                               403
+public /realms/formation/.well-known/openid-configuration200
+-- adresse d'administration
+admin /admin/master/console/                           200
+admin /realms/master/.well-known/openid-configuration  200
+-- issuer du realm master vu depuis l'adresse d'administration :
+https://auth.lab.test:18443/realms/master
+-- la console sur le nom public (hors proxy, Host public) redirige-t-elle ?
+HTTP/1.1 302 Found
+Location: https://admin.lab.test:19443/admin/master/console/
+
+##### 3. Port 9000
+-- depuis le reseau du conteneur Keycloak
+{
+    "status": "UP",
+    "checks": [
+        {
+            "name": "Graceful Shutdown",
+            "status": "UP"
+        },
+        {
+            "name": "Keycloak cluster health check",
+            "status": "UP"
+        },
+        {
+            "name": "Keycloak database connections async health check",
+            "status": "UP"
+        },
+        {
+            "name": "Keycloak Initialized",
+            "status": "UP"
+        }
+    ]
+}
+live HTTP 200
+jvm_memory_used_bytes{area="nonheap",id="CodeHeap 'profiled nmethods'"} 4.4128512E7
+jvm_memory_used_bytes{area="heap",id="G1 Survivor Space"} 4289176.0
+jvm_memory_used_bytes{area="heap",id="G1 Old Gen"} 6.8958208E7
+jvm_memory_used_bytes{area="nonheap",id="Metaspace"} 1.59317752E8
+-- depuis l'hote
+hote 127.0.0.1:9000 -> 000
+hote 127.0.0.1:8080 -> 000
+-- ports publies par Compose
+db 5432/tcp
+keycloak 8080/tcp, 8443/tcp, 9000/tcp
+proxy 80/tcp, 2019/tcp, 443/udp, 127.0.0.1:18443->443/tcp, 127.0.0.1:19443->9443/tcp
+-- port 8080 interne : /health
+8080 /health/ready -> 404

@@ -1,0 +1,48 @@
+##### Donnees du realm avant sauvegarde : evenements, session, utilisateurs
+Logging into http://localhost:8080 as user temp-admin of realm master
+Created new user with id 'f1ad8741-0f10-4d57-ac1a-89855b6b08b4'
+echec volontaire: HTTP 400
+-- tables de session presentes dans la base :
+auth_session
+offline_client_session
+offline_user_session
+root_auth_session
+-- lignes : user_session / offline_user_session / event_entity / admin_event_entity / user_entity
+user_session=ERROR:  relation "user_session" does not exist
+LINE 1: select count(*) from user_session
+                             ^
+offline_user_session=4
+event_entity=2
+admin_event_entity=3
+user_entity=3
+-- realms et clients du realm formation
+formation
+master
+account account-console admin-cli appli broker realm-management security-admin-console 
+
+##### 4a. pg_dump au format custom
+250672 /tmp/claude-1000/-home-bob-Projets-test-astro-5/35a3c76a-c83b-471f-8a4e-cbcb743fffe5/scratchpad/author-production/lab/backup/keycloak-26.7.0.dump
+2704e3833d8b3694
+-- contenu lisible par pg_restore --list (les 4 premieres tables de donnees)
+4367; 0 16398 TABLE DATA public client keycloak
+4372; 0 16439 TABLE DATA public realm keycloak
+4380; 0 16498 TABLE DATA public user_entity keycloak
+
+##### 4b. Restauration dans une base VIDE
+tables avant restauration: 0
+pg_restore code retour: 0
+user_entity (restauree)=3
+user_session (restauree)=ERROR:  relation "user_session" does not exist
+LINE 1: select count(*) from user_session
+                             ^
+event_entity (restauree)=2
+admin_event_entity (restauree)=3
+formation master 
+
+##### 4c. Un Keycloak 26.7.0 demarre sur la base restauree
+ Container prod-kc-restore Creating 
+ Container prod-kc-restore Created 
+pret apres 60x2s
+jq: parse error: Invalid numeric literal at line 1, column 10
+jq: parse error: Invalid numeric literal at line 1, column 10
+base de restauration supprimee

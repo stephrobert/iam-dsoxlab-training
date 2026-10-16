@@ -1,0 +1,28 @@
+{
+	auto_https off
+}
+
+# Adresse publique : seuls les chemins utiles aux applications.
+auth.lab.test {
+	tls /certs/lab.crt /certs/lab.key
+
+	@master path /realms/master /realms/master/*
+	handle @master {
+		respond "Interdit" 403
+	}
+
+	@public path /realms/* /resources/* /.well-known/*
+	handle @public {
+		reverse_proxy keycloak:8080
+	}
+
+	handle {
+		respond "Interdit" 403
+	}
+}
+
+# Adresse d'administration : port distinct, publié sur la boucle locale seulement.
+admin.lab.test:9443 {
+	tls /certs/lab.crt /certs/lab.key
+	reverse_proxy keycloak:8080
+}

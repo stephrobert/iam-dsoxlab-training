@@ -1,0 +1,23 @@
+##### Verification du compte permanent admin-sr (mot de passe inconnu : on repasse par le compte de secours)
+{"error":"invalid_grant","error_description":"Invalid user credentials"} HTTP 400
+ Container prod-keycloak-1 Stopped 
+2026-10-15 20:10:55,573 INFO  [org.keycloak.services] (main) KC-SERVICES0077: Created temporary admin user with username secours
+ Container prod-proxy-1 Started 
+pret apres 4x2s
+Logging into http://localhost:8080 as user secours of realm master
+Logging into http://localhost:8080 as user admin-sr of realm master
+connexion admin-sr: ok
+compte de secours supprime
+admin-sr 
+formation master 
+
+##### Retour arriere : 26.7.0 sur une base deja migree en 26.8 (copie)
+Changes detected in configuration. Updating the server image.
+Updating the configuration and installing your custom providers, if any. Please wait.
+2026-10-15 20:11:17,796 WARN  [org.keycloak.common.Profile] (build-9) Deprecated features identity-brokering-api:v1, twitter-broker:v1 enabled by default. Check the upgrading guide for steps to use later versions if available.
+2026-10-15 20:11:25,932 WARN  [org.keycloak.common.Profile] (executor-thread-1) Deprecated features identity-brokering-api:v1, twitter-broker:v1 enabled by default. Check the upgrading guide for steps to use later versions if available.
+2026-10-15 20:11:26,005 INFO  [io.quarkus] (main) Keycloak 26.7.0 on JVM (powered by Quarkus 3.33.2.1) started in 3.038s. Listening on: http://0.0.0.0:8080. Management interface listening on http://0.0.0.0:9000.
+2026-10-15 20:11:26,927 WARN  [org.keycloak.storage.datastore.DefaultMigrationManager] (executor-thread-1) Possibly incorrect state of migration. You are trying to run server version '26.7.0' against database, which was already migrated to newer version '26.8.1'.
+2026-10-15 20:11:27,941 ERROR [org.jgroups.protocols.TCP] (Connection.Receiver [192.168.16.5:53369 - 192.168.16.3:7800]-6,d59b9583ccde-60140(v=16.0.12)) 192.168.16.5:7800: failed sending graceful close to 192.168.16.3:7800: Broken pipe
+2026-10-15 20:11:29,566 ERROR [org.jgroups.protocols.TCP] (Connection.Receiver [192.168.16.5:51291 - 192.168.16.3:7800]-7,d59b9583ccde-60140(v=16.0.12)) 192.168.16.5:7800: failed sending graceful close to 192.168.16.3:7800: Broken pipe
+base de test supprimee

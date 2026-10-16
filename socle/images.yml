@@ -32,10 +32,24 @@ keycloak:
   port_gestion: 9000
 
 postgres:
-  # La documentation de Keycloak 26.8 liste PostgreSQL 17 et 18 comme bases
-  # supportées. On prend 18, la plus récente des deux, et le dernier correctif
-  # publié de cette majeure. Si un défaut apparaissait sur 18, 17 est le repli
-  # supporté, et c'est la seule raison qui justifierait d'en changer.
+  # La documentation de Keycloak 26.8 donne, mot pour mot :
+  #
+  #   PostgreSQL | postgres | Tested Version 18 | Supported 18.x, 17.x, 16.x, 15.x, 14.x
+  #
+  # On prend donc 18, qui est la version que KEYCLOAK LUI-MÊME TESTE, et le
+  # dernier correctif publié de cette majeure. 14 à 17 restent supportés, et
+  # c'est le repli si un défaut apparaissait.
+  #
+  # Écart assumé avec les essais des leçons : le `compose.yaml` de
+  # `preparation/scripts-executes/production/files/` tourne sur
+  # `postgres:16-alpine`, qui est supporté mais n'est pas la version testée.
+  # Jouer les labs sur la version testée par l'éditeur est le choix le plus
+  # sûr, et l'écart est noté pour qu'il ne se découvre pas en route.
+  #
+  # Une première lecture partielle de cette page m'avait fait croire que 16
+  # n'était pas supporté, ce qui était faux : la page liste les versions dans
+  # une colonne du tableau, et un grep sur le texte aplati ne rend que la
+  # version testée.
   version: "18.6"
   image: "docker.io/library/postgres"
   digest: "sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336"
