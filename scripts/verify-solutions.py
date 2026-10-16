@@ -216,7 +216,7 @@ def jouer(lab: Lab, *, rejeu: bool) -> tuple[bool, str]:
     # La sortie complete est conservee pour les rouges : un resume du type
     # « 4 errors » ne dit RIEN de la cause, et reproduire un echec de sequence
     # coute une passe entiere. On garde de quoi diagnostiquer sans rejouer.
-    global DERNIERE_SORTIE
+    global DERNIERE_SORTIE  # noqa: PLW0603  # une seule sortie retenue, pour le diagnostic
     DERNIERE_SORTIE = (proc.stdout + proc.stderr)[-6000:]
     return proc.returncode == 0, resume
 
