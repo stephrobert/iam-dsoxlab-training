@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-10-realm-as-code
+title: "Describe a realm as code, apply it, and catch the drift"
+description: |
+  Describe a realm, its roles, its group and its two clients in versioned
+  files, apply them, and make a change made by hand disappear by applying
+  again. Graded on the applied realm matching the files, on the drift being
+  corrected, and on no secret sitting in clear in anything you wrote, state
+  file included.
+section: niveau-2
+level: niveau-2
+lab_type: lab
+difficulty: advanced
+estimated_time: "50m"
+skills:
+  - keycloak
+  - terraform
+  - configuration-as-code
+  - gitops
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/configuration-as-code/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Le secret d'un client confidentiel se retrouve en clair dans le fichier
+  # d'état, en 644 par défaut, alors que les fichiers décrivant le realm sont
+  # propres. C'est le piège de ce lab, et il est de sécurité.
+  security: true
+  persistence_after_reboot: false

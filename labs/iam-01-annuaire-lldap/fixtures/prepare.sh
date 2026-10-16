@@ -104,11 +104,16 @@ retirer_les_comptes() {
   set -x
 }
 
+# La trace est SUSPENDUE autour de l'obtention du jeton ET de son test :
+# `set -x` journaliserait sa valeur, et ce fichier est collecté par
+# `dsoxlab support`.
+set +x
 JETON=$(jeton_lldap)
 if [ -z "$JETON" ]; then
   echo "ÉCHEC : aucun jeton de l'API LLDAP. L'annuaire répond-il sur $WEB ?" >&2
   exit 1
 fi
+set -x
 
 # ─── Mode nettoyage, appelé par cleanup.yaml ──────────────────────────────────
 if [ "${1:-}" = "--nettoyer" ]; then

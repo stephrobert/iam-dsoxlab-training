@@ -46,11 +46,13 @@ JETON=$(curl -sS --max-time 20 -X POST \
   -d grant_type=password -d client_id=admin-cli \
   -d "username=$KC_USER" -d "password=$KC_MDP" \
   | jq -r '.access_token // empty')
-set -x
+# Le test qui suit reste dans la zone NON tracée : `set -x` journaliserait
+# la valeur du jeton, et ce fichier est collecté par `dsoxlab support`.
 if [ -z "$JETON" ]; then
   echo "ÉCHEC : aucun jeton d'administration. Keycloak répond-il sur $KC ?" >&2
   exit 1
 fi
+set -x
 
 admin() { # $1 méthode, $2 chemin sous /admin, $3 corps
   set +x

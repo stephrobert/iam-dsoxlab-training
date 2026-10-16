@@ -83,7 +83,7 @@ id_du_client() {
 id_du_scope() {
   curl -sS --max-time 20 "$KC/admin/realms/$REALM/client-scopes" \
     -H "Authorization: Bearer $JETON" \
-    | jq -r --arg n "$1" '.[] | select(.name == $n) | .id' | head -1
+    | jq -r --arg n "$1" 'first(.[] | select(.name == $n) | .id) // empty'
 }
 
 retirer_client() {

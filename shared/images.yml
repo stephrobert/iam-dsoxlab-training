@@ -154,3 +154,31 @@ keycloak_montee:
     image: "quay.io/keycloak/keycloak"
     digest: "sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244"
   releve_le: "2026-10-16"
+
+# ── L'outillage du lab iam-10, qui décrit un realm en code ──────────────────
+#
+# RELEVÉ LE 2026-10-16. Ce ne sont pas des images : un binaire et un provider,
+# épinglés pour la même raison qu'une image, et installés par le setup du lab.
+#
+# POURQUOI LE PROVIDER TERRAFORM, ET PAS keycloak-config-cli : mesuré au
+# relevé, le dernier tag stable de `adorsys/keycloak-config-cli` est 6.5.1
+# pour Keycloak **24** (mai 2026), et rien au-delà hormis `edge`. Le provider,
+# lui, est en 5.10.0 du 2026-10-05 et vit sous l'organisation `keycloak` sur
+# GitHub (`github.com/keycloak/terraform-provider-keycloak`), donc repris par
+# le projet lui-même. On n'enseigne pas avec un outil dont la version
+# supportée s'arrête deux majeures en arrière.
+#
+# À SAVOIR : `terraform init` annonce ce provider comme « self-signed », avec
+# l'empreinte de sa clef. Ce n'est pas une alerte, c'est la signature d'un
+# éditeur qui n'est pas HashiCorp.
+realm_as_code:
+  terraform:
+    version: "1.16.6"
+    releve_le: "2026-10-16"
+  provider_keycloak:
+    # Le provider se télécharge au `terraform init`, depuis le registre, et la
+    # contrainte de version est écrite par l'apprenant dans son `provider.tf`.
+    # Cette valeur est celle que le cahier des charges du lab lui donne.
+    version: "5.10.0"
+    source: "keycloak/keycloak"
+    releve_le: "2026-10-16"

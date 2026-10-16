@@ -1,0 +1,43 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Le realm décrit part, et les fichiers de travail aussi. Un realm qui
+# survivrait rendrait le lab vert avant tout travail au passage suivant, et un
+# fichier d'état laissé derrière contiendrait encore le secret du client
+# confidentiel.
+- name: Nettoyer le lab iam-10-realm-as-code
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer le realm décrit et les fichiers de travail
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que le realm décrit a bien disparu
+      # Le contrôle porte sur l'ÉTAT, et non sur le code de retour du script :
+      # un realm resté debout serait trouvé par le lab suivant.
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/realms/as-code/.well-known/openid-configuration
+        status_code: [404]
+      register: realm_parti
+      retries: 10
+      delay: 2
+      until: realm_parti is succeeded
+
+    - name: Vérifier que le realm du socle, lui, répond toujours
+      # Le cas d'échec que ce lab fait rencontrer est d'appliquer sur le
+      # mauvais realm. Le nettoyage vérifie donc que celui du socle est
+      # intact, plutôt que de le supposer.
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/realms/formation/.well-known/openid-configuration
+        status_code: [200]
+      register: socle
+      retries: 10
+      delay: 2
+      until: socle is succeeded

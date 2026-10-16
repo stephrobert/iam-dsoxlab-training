@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Décrire un realm en code, l'appliquer, et rattraper la dérive"
+description: |
+  Décrire un realm, ses rôles, son groupe et ses deux clients dans des fichiers
+  versionnés, les appliquer, et faire disparaître une modification faite à la
+  main en réappliquant. Noté sur le realm appliqué qui correspond aux fichiers,
+  sur la dérive corrigée, et sur l'absence de tout secret en clair dans ce que
+  vous avez écrit, fichier d'état compris.

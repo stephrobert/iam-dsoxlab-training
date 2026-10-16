@@ -194,11 +194,13 @@ JETON=$(curl -sS --max-time 20 -X POST \
   -d grant_type=password -d client_id=admin-cli \
   -d "username=$KC_ADMIN" -d "password=$KC_ADMIN_PASSWORD" \
   | jq -r '.access_token // empty')
-set -x
+# Le test qui suit reste dans la zone NON tracée : `set -x` journaliserait
+# la valeur du jeton, et ce fichier est collecté par `dsoxlab support`.
 if [ -z "$JETON" ]; then
   echo "ÉCHEC : aucun jeton d'administration sur l'instance de production." >&2
   exit 1
 fi
+set -x
 
 api() {
   set +x

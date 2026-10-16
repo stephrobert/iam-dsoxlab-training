@@ -64,7 +64,12 @@ if [ ! -r "$SOCLE_ENV" ]; then
   exit 1
 fi
 
-IP=$(ip -4 -o addr show scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+# Pas de `| head -1` : sous `set -o pipefail`, `head` ferme le tuyau dès la
+# première ligne, les commandes en amont peuvent mourir sur SIGPIPE, le
+# pipeline rend 141 et `set -e` tue le script. awk lit tout et ne sort pas en
+# avance.
+IP=$(ip -4 -o addr show scope global \
+     | awk 'NR == 1 { split($4, a, "/"); print a[1] }')
 if [ -z "$IP" ]; then
   echo "ÉCHEC : aucune adresse IPv4 globale sur cette machine." >&2
   exit 1
@@ -78,11 +83,13 @@ JETON=$(curl -sS --max-time 20 -X POST \
   -d grant_type=password -d client_id=admin-cli \
   -d "username=$KC_USER" -d "password=$KC_MDP" \
   | jq -r '.access_token // empty')
-set -x
+# Le test qui suit reste dans la zone NON tracée : `set -x` journaliserait
+# la valeur du jeton, et ce fichier est collecté par `dsoxlab support`.
 if [ -z "$JETON" ]; then
   echo "ÉCHEC : aucun jeton d'administration. Keycloak répond-il sur $KC ?" >&2
   exit 1
 fi
+set -x
 
 admin() {
   set +x
