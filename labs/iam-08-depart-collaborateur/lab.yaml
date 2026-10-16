@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-08-depart-collaborateur
+title: "Cut off someone who is leaving"
+description: |
+  Disable an account without deleting it, close the sessions that survive the
+  disabling, strip the groups, and produce the review file an auditor can read.
+  Graded on what is still open afterwards, and on the account still being there
+  to be audited.
+section: niveau-2
+level: niveau-2
+lab_type: lab
+difficulty: intermediate
+estimated_time: "40m"
+skills:
+  - keycloak
+  - gouvernance
+  - sessions
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  # Couper un accès est une opération de sécurité, et la preuve qu'il est coupé
+  # fait partie du travail.
+  security: true
+  persistence_after_reboot: false

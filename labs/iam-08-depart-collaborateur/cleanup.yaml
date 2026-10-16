@@ -1,0 +1,53 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# La fédération part, ce qui emporte les comptes importés. Les groupes, les
+# rôles et le client partent aussi, et l'annuaire est vidé de ses quatre
+# personnes : le lab suivant doit trouver un realm et un annuaire propres.
+- name: Nettoyer le lab iam-08-depart-collaborateur
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer la fédération, les comptes et les fichiers du lab
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Retirer le rôle accordé directement
+      # Il n'est pas emporté par la fédération : c'est un rôle du realm, et un
+      # rôle oublié réapparaîtrait dans la revue du lab suivant.
+      ansible.builtin.shell:
+        cmd: |
+          set -u
+          u=$(grep '^KC_BOOTSTRAP_ADMIN_USERNAME=' /opt/socle-iam/.env | cut -d= -f2-)
+          p=$(grep '^KC_BOOTSTRAP_ADMIN_PASSWORD=' /opt/socle-iam/.env | cut -d= -f2-)
+          jeton=$(curl -sS --max-time 20 -X POST \
+            http://127.0.0.1:8080/realms/master/protocol/openid-connect/token \
+            -d grant_type=password -d client_id=admin-cli \
+            -d "username=$u" -d "password=$p" | jq -r '.access_token // empty')
+          curl -sS --max-time 30 -o /dev/null \
+            -X DELETE \
+            http://127.0.0.1:8080/admin/realms/formation/roles/acces-exceptionnel-sauvegardes \
+            -H "Authorization: Bearer $jeton"
+          curl -sS --max-time 30 \
+            'http://127.0.0.1:8080/admin/realms/formation/users?max=50' \
+            -H "Authorization: Bearer $jeton" | jq 'length'
+        executable: /bin/bash
+      register: comptes_restants
+      changed_when: true
+
+    - name: Refuser de conclure si un compte survit
+      # Le contrôle porte sur l'ÉTAT du realm : un compte fédéré qui survivrait
+      # rendrait vert un test du lab suivant.
+      ansible.builtin.assert:
+        that:
+          - comptes_restants.stdout_lines[-1] | trim | int == 0
+        fail_msg: >-
+          Le realm connaît encore
+          {{ comptes_restants.stdout_lines[-1] | trim }} compte(s). La
+          fédération a-t-elle bien été retirée ?

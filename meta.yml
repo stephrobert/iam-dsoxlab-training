@@ -131,3 +131,4 @@ sections:
     description: "Enforce strong authentication, handle a leaving employee, review access, wire the platform in, back up and upgrade the provider, and describe the realm as code. Ends with the final exam."
     labs:
       - iam-07-mfa-keycloak
+      - iam-08-depart-collaborateur

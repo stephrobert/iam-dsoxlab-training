@@ -1,0 +1,8 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Couper les accès de quelqu'un qui part"
+description: |
+  Désactiver un compte sans le supprimer, fermer les sessions qui survivent à
+  la désactivation, retirer les groupes, et produire le fichier de revue qu'un
+  auditeur peut lire. Noté sur ce qui reste ouvert ensuite, et sur le compte
+  encore présent pour être audité.
