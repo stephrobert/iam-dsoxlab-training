@@ -2,7 +2,7 @@
 
 | Champ | Valeur |
 |---|---|
-| Leçon d'accueil (`doc_url`) | `(leçon à écrire) « Kubernetes, Vault et les outils »` |
+| Leçon d'accueil (`doc_url`) | `/docs/services/identite/keycloak/plateforme/` |
 | Compétence (provisoire) | `iam.platform.integrate` |
 | Durée visée | ~60 min (à **mesurer** en jouant le lab) |
 | Prérequis | labs 2 et 4 ; prérequis Kubernetes (RBAC) et Vault |

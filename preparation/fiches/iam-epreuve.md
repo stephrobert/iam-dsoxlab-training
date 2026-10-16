@@ -2,7 +2,7 @@
 
 | Champ | Valeur |
 |---|---|
-| Leçon d'accueil (`doc_url`) | `/docs/services/identite/fondamentaux/capstone/ (brouillon à finir)` |
+| Leçon d'accueil (`doc_url`) | `/docs/services/identite/epreuve-niveau-2/` |
 | Compétence (provisoire) | `toutes les compétences de la formation` |
 | Durée visée | ~120 min (à **mesurer** en jouant le lab) |
 | Prérequis | tous les labs |
