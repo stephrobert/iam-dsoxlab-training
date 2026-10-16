@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/stephrobert/dsoxlab/main/schemas/lab.schema.json
+#
+# Canonique en anglais, comme le contrat l'exige. `lab.fr.yaml` surcharge le
+# titre et la description pour le lecteur francophone, et rien d'autre.
+id: iam-01-annuaire-lldap
+title: "Organise accounts and groups in a directory"
+description: |
+  A directory is where accounts live before any identity provider reads them.
+  Create three people and two groups in LLDAP, set their memberships, and find
+  out the hard way which writes a lightweight directory accepts and which it
+  silently drops. Graded by ldapsearch, and by a restart.
+section: niveau-1
+level: niveau-1
+lab_type: lab
+difficulty: beginner
+estimated_time: "30m"
+skills:
+  - ldap
+  - lldap
+  - annuaire
+distros:
+  - ubuntu24
+doc_url: https://blog.stephane-robert.info/docs/services/identite/lldap/
+certification_tags: []
+runtime:
+  type: vm
+  targets:
+    - name: idp
+      host: idp.lab
+      label_en: "Ubuntu 24.04"
+      label_fr: "Ubuntu 24.04"
+  default: idp
+validation:
+  functional: true
+  security: false
+  # Les comptes doivent survivre au redémarrage du conteneur : un annuaire qui
+  # perd ses données au premier arrêt n'est pas un annuaire.
+  persistence_after_reboot: true

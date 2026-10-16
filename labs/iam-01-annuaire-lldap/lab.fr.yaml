@@ -1,0 +1,9 @@
+# Surcharge française du titre et de la description. Tout autre champ y est
+# ignoré par le moteur : le contrat vit dans `lab.yaml`.
+title: "Organiser des comptes et des groupes dans un annuaire"
+description: |
+  Un annuaire, c'est là où vivent les comptes avant qu'un fournisseur
+  d'identité ne les lise. Créez trois personnes et deux groupes dans LLDAP,
+  posez leurs appartenances, et découvrez à vos dépens quelles écritures un
+  annuaire léger accepte et lesquelles il laisse tomber en silence. Noté par
+  ldapsearch, et par un redémarrage.

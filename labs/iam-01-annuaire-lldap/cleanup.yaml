@@ -1,0 +1,49 @@
+---
+# Joué par `dsoxlab clean` : ne laisse rien derrière soi.
+#
+# Les comptes et les groupes créés par l'apprenant partent. L'annuaire
+# LUI-MÊME reste debout, avec son compte d'administration : il est partagé par
+# cinq labs, et le remonter à chaque nettoyage coûterait trois minutes par lab
+# pour rien.
+- name: Nettoyer le lab iam-01-annuaire-lldap
+  hosts: lab_target
+  become: true
+  tasks:
+    - name: Retirer les comptes et les groupes du lab
+      # Par le script de mise en situation, qui sait déjà lire le DN de base et
+      # obtenir un jeton de l'API. Refaire cela ici en ferait deux endroits à
+      # corriger le jour où le socle changera.
+      ansible.builtin.script: fixtures/prepare.sh --nettoyer
+      args:
+        executable: /bin/bash
+
+    - name: Retirer la trace du script de mise en situation
+      ansible.builtin.file:
+        path: /var/log/dsoxlab-prepare.log
+        state: absent
+
+    - name: Vérifier que l'annuaire ne porte plus que son compte d'administration
+      # Le contrôle porte sur l'ÉTAT de l'annuaire, pas sur le code de retour du
+      # nettoyage : un compte qui survivrait rendrait le lab suivant vert sans
+      # travail, et personne ne le saurait.
+      ansible.builtin.shell:
+        cmd: |
+          set -u
+          base=$(grep '^LLDAP_BASE_DN=' /opt/socle-iam/.env | cut -d= -f2-)
+          mdp=$(grep '^LLDAP_ADMIN_PASSWORD=' /opt/socle-iam/.env | cut -d= -f2-)
+          ldapsearch -x -H ldap://127.0.0.1:3890 \
+            -D "uid=admin,ou=people,$base" -w "$mdp" \
+            -b "ou=people,$base" -LLL '(objectClass=*)' dn \
+            | grep -c '^dn:' || true
+        executable: /bin/bash
+      register: comptes_restants
+      changed_when: false
+
+    - name: Refuser de conclure si un compte du lab survit
+      ansible.builtin.assert:
+        that:
+          - comptes_restants.stdout | trim | int == 1
+        fail_msg: >-
+          L'annuaire porte {{ comptes_restants.stdout | trim }} compte(s) sous
+          ou=people au lieu du seul compte d'administration. Le nettoyage n'a
+          pas fait son travail, et le lab suivant héritera de cet état.
