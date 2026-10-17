@@ -241,7 +241,7 @@ def test_une_sauvegarde_de_la_base_existe_et_precede_la_montee(idp):
         f"find {ids['REPERTOIRE_SAUVEGARDES']} -type f "
         r"\( -name '*.dump' -o -name '*.sql' -o -name '*.sql.gz' "
         r"-o -name '*.custom' \) -printf '%T@ %s %p\n' | sort -n")
-    lignes = [l for l in trouvees.stdout.splitlines() if l.strip()]
+    lignes = [ligne for ligne in trouvees.stdout.splitlines() if ligne.strip()]
     assert lignes, message(
         en=f"No backup in {ids['REPERTOIRE_SAUVEGARDES']}. The test looks there "
         "for a .dump, .sql, .sql.gz or .custom file.",
@@ -338,9 +338,11 @@ def test_la_sauvegarde_se_restaure_dans_une_base_vide(idp):
             f"{restauration.stderr[-300:]!r}",
         )
 
+        # S608 est désarmé ici : le nom du realm vient du cahier de
+        # l'épreuve, pas d'une entrée de l'apprenant.
         comptes = _psql(
             idp, ids, base,
-            "select count(*) from user_entity where realm_id in "
+            "select count(*) from user_entity where realm_id in "  # noqa: S608
             f"(select id from realm where name='{ids['REALM']}')")
         attendus = int(ids["NB_COMPTES_ATTENDUS"])
         assert comptes.isdigit() and int(comptes) >= attendus, message(
@@ -370,7 +372,7 @@ def test_l_export_du_realm_existe_et_porte_les_comptes(idp):
     fichiers = idp.run(
         f"find {ids['REPERTOIRE_EXPORTS']} -type f -name '*.json' "
         r"-printf '%p\n'")
-    chemins = [l for l in fichiers.stdout.splitlines() if l.strip()]
+    chemins = [ligne for ligne in fichiers.stdout.splitlines() if ligne.strip()]
     assert chemins, message(
         en=f"No JSON export in {ids['REPERTOIRE_EXPORTS']}.",
         fr=f"Aucun export JSON dans {ids['REPERTOIRE_EXPORTS']}.",
@@ -450,7 +452,10 @@ def test_la_trace_d_audit_a_survecu(idp):
     _exiger_la_montee(idp, ids)
     total = 0
     for table in TABLES_DE_TRACE:
-        valeur = _psql(idp, ids, "keycloak", f"select count(*) from {table}")
+        # S608 est désarmé ici : `table` parcourt TABLES_DE_TRACE, une
+        # constante de ce fichier.
+        valeur = _psql(
+            idp, ids, "keycloak", f"select count(*) from {table}")  # noqa: S608
         assert valeur.isdigit(), message(
             en=f"The table {table} could not be read: {valeur!r}. Is the instance's "
             "database the one from before the upgrade?",
