@@ -1191,8 +1191,10 @@ def test_une_sauvegarde_de_la_base_se_restaure_dans_une_base_vide(idp):
                         f"-d {base} < {shlex.quote(chemin)}")
         restauration = idp.run(commande)
 
+        # S608 est désarmé ici : requête de contrôle sur un schéma fixe,
+        # aucune entrée de l'apprenant n'y entre.
         tables = idp.run(
-            f"docker exec {nom} psql -U keycloak -d {base} -tAc "
+            f"docker exec {nom} psql -U keycloak -d {base} -tAc "  # noqa: S608
             "\"select count(*) from information_schema.tables "
             "where table_schema='public'\"").stdout.strip()
         assert tables.isdigit() and int(tables) > 50, message(
@@ -1202,8 +1204,9 @@ def test_une_sauvegarde_de_la_base_se_restaure_dans_une_base_vide(idp):
             f"{restauration.stdout[-300:]}{restauration.stderr[-300:]}",
         )
 
+        # S608 est désarmé ici : le realm attendu vient du cahier.
         comptes = idp.run(
-            f"docker exec {nom} psql -U keycloak -d {base} -tAc "
+            f"docker exec {nom} psql -U keycloak -d {base} -tAc "  # noqa: S608
             "\"select count(*) from user_entity where realm_id in "
             f"(select id from realm where name='{cahier['REALM_ATTENDU']}')\""
         ).stdout.strip()

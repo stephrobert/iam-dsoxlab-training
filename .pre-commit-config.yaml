@@ -58,7 +58,14 @@ repos:
     hooks:
       - id: ruff
         name: ruff (lint du python des labs et des témoins)
-        entry: uvx ruff check --fix
+        # `--force-exclude` n'est pas une précaution : sans lui, l'`exclude` du
+        # pyproject est IGNORÉ pour tout fichier passé en argument, et
+        # pre-commit passe justement les fichiers en argument. Mesuré le
+        # 2026-09-25 dans le catalogue GitHub Actions, reproduit ici le
+        # 2026-10-17 : ruff a retiré un import d'un dépôt d'exemple livré à
+        # l'apprenant, alors que `ruff check .` lancé à la main respectait
+        # l'exclusion.
+        entry: uvx ruff check --fix --force-exclude
         language: system
         types_or: [python, pyi]
         require_serial: true
@@ -114,12 +121,24 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # Le verrou porte la version du `pyproject.toml` : la bouger sans
+      # relocker le rend périmé. Ce contrôle existait en CI, donc il attrapait
+      # l'erreur APRÈS le push. Mesuré le 2026-10-17 : une version bougée sur
+      # les douze catalogues a fait rougir les douze CI, là où un hook l'aurait
+      # dit au premier commit. Il est instantané et hors ligne.
+      - id: verrou-a-jour
+        name: uv.lock décrit bien le pyproject
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
+        files: '^(pyproject\.toml|uv\.lock)$'
+
       # Le contrat du catalogue, au push : `validate-structure` lit meta.yml,
       # chaque lab.yaml et chaque lien relatif des README. Il attrape ce
       # qu'aucun test local ne voit.
       - id: contrat-du-catalogue
         name: dsoxlab validate-structure
-        entry: uvx dsoxlab validate-structure
+        entry: uvx 'dsoxlab>=0.4.1' validate-structure
         language: system
         pass_filenames: false
         always_run: true
