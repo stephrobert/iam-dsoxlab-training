@@ -31,7 +31,7 @@ import json
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -64,10 +64,13 @@ def idp():
 
 def _identifiants(hote) -> dict[str, str]:
     fichier = hote.file(IDENTIFIANTS)
-    assert fichier.exists, (
-        f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
+    assert fichier.exists, message(
+        en=f"{IDENTIFIANTS} is missing. The lab's setup did not run, or its "
+        "staging script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
         "script de mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -92,9 +95,11 @@ def _jeton_admin(hote) -> str:
         '-d "username=$u" -d "password=$p" | jq -r \'.access_token // empty\''
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        "Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
-        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})"
+    assert jeton, message(
+        en="No administration token could be obtained. Is Keycloak answering "
+        f"on {KEYCLOAK}, and is the base installed? (rc={res.rc})",
+        fr="Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
+        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})",
     )
     return jeton
 
@@ -109,16 +114,22 @@ def _api_admin(hote, chemin: str) -> object:
         return json.loads(res.stdout or "null")
     except json.JSONDecodeError:
         pytest.fail(
-            f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
-            f"{res.stdout[:300]}"
+            message(
+            en=f"The administration API returned no JSON for {chemin}: "
+            f"{res.stdout[:300]}",
+            fr=f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
+            f"{res.stdout[:300]}",
+        )
         )
 
 
 def _client_declare(hote, nom: str) -> dict:
     trouves = _api_admin(hote, f"clients?clientId={nom}")
-    assert trouves, (
-        f"Aucun client « {nom} » dans le realm « {REALM} ». C'est l'un des "
-        "objets que le challenge demande de déclarer."
+    assert trouves, message(
+        en=f"No client \"{nom}\" in the realm \"{REALM}\". It is one of the "
+        "objects the challenge asks you to declare.",
+        fr=f"Aucun client « {nom} » dans le realm « {REALM} ». C'est l'un des "
+        "objets que le challenge demande de déclarer.",
     )
     return trouves[0]
 
@@ -126,9 +137,11 @@ def _client_declare(hote, nom: str) -> dict:
 def _scope_declare(hote, nom: str) -> dict:
     tous = _api_admin(hote, "client-scopes") or []
     trouves = [s for s in tous if s.get("name") == nom]
-    assert trouves, (
-        f"Aucun scope de client « {nom} » dans le realm. Les permissions de "
-        "l'API se déclarent comme des scopes, un par permission."
+    assert trouves, message(
+        en=f"No client scope \"{nom}\" in the realm. The API's permissions "
+        "are declared as scopes, one per permission.",
+        fr=f"Aucun scope de client « {nom} » dans le realm. Les permissions de "
+        "l'API se déclarent comme des scopes, un par permission.",
     )
     return trouves[0]
 
@@ -146,10 +159,13 @@ def _jeton_utilisateur(hote, scope: str = "") -> str:
         "| jq -r '.access_token // empty'"
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        f"Aucun jeton obtenu pour le scope {scope!r}. Le scope existe-t-il, et "
+    assert jeton, message(
+        en=f"No token obtained for the scope {scope!r}. Does the scope exist, and "
+        "is it attached to the test client? "
+        f"(rc={res.rc}, stderr={res.stderr.strip()[:200]})",
+        fr=f"Aucun jeton obtenu pour le scope {scope!r}. Le scope existe-t-il, et "
         "est-il attaché au client de test ? "
-        f"(rc={res.rc}, stderr={res.stderr.strip()[:200]})"
+        f"(rc={res.rc}, stderr={res.stderr.strip()[:200]})",
     )
     return jeton
 
@@ -163,10 +179,13 @@ def _jeton_du_service(hote) -> str:
     client = _client_declare(hote, SERVICE)
     secret = _api_admin(hote, f"clients/{client['id']}/client-secret")
     valeur = (secret or {}).get("value", "")
-    assert valeur, (
-        f"Le client « {SERVICE} » n'a pas de secret. Un accès machine sans "
+    assert valeur, message(
+        en=f"The client \"{SERVICE}\" has no secret. Machine access with no "
+        "user goes through a CONFIDENTIAL client, which authenticates with "
+        "its secret.",
+        fr=f"Le client « {SERVICE} » n'a pas de secret. Un accès machine sans "
         "utilisateur passe par un client CONFIDENTIEL, qui s'authentifie avec "
-        "son secret."
+        "son secret.",
     )
     res = hote.run(
         f"curl -sS --max-time 20 -X POST "
@@ -175,10 +194,13 @@ def _jeton_du_service(hote) -> str:
         f"-d client_secret={valeur!r} | jq -r '.access_token // empty'"
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        f"Le client « {SERVICE} » n'obtient pas de jeton en client "
+    assert jeton, message(
+        en=f"The client \"{SERVICE}\" does not obtain a token with client "
+        "credentials. Is its service account enabled? "
+        f"(rc={res.rc})",
+        fr=f"Le client « {SERVICE} » n'obtient pas de jeton en client "
         "credentials. Son compte de service est-il activé ? "
-        f"(rc={res.rc})"
+        f"(rc={res.rc})",
     )
     return jeton
 
@@ -192,9 +214,11 @@ def _appeler(hote, methode: str, jeton: str | None = None) -> tuple[int, str, st
         "echo; cat /tmp/corps-test; echo; cat /tmp/entetes-test"
     )
     morceaux = res.stdout.split("\n", 2)
-    assert morceaux and morceaux[0].strip().isdigit(), (
-        f"L'API ne répond pas sur {API}. Tourne-t-elle ? "
-        f"(rc={res.rc}, sortie={res.stdout[:200]})"
+    assert morceaux and morceaux[0].strip().isdigit(), message(
+        en=f"The API does not answer on {API}. Is it running? "
+        f"(rc={res.rc}, output={res.stdout[:200]})",
+        fr=f"L'API ne répond pas sur {API}. Tourne-t-elle ? "
+        f"(rc={res.rc}, sortie={res.stdout[:200]})",
     )
     code = int(morceaux[0].strip())
     corps = morceaux[1] if len(morceaux) > 1 else ""
@@ -226,14 +250,19 @@ def test_sans_jeton_l_api_refuse_et_dit_comment_s_authentifier(idp):
     """
     code, corps, entetes = _appeler(idp, "GET")
 
-    assert code == 401, (
-        f"Un appel sans jeton rend HTTP {code} au lieu de 401. Une API "
-        f"protégée refuse d'abord, elle ne répond pas. Corps : {corps[:200]}"
+    assert code == 401, message(
+        en=f"A call with no token returns HTTP {code} instead of 401. A protected "
+        f"API refuses first, it does not answer. Body: {corps[:200]}",
+        fr=f"Un appel sans jeton rend HTTP {code} au lieu de 401. Une API "
+        f"protégée refuse d'abord, elle ne répond pas. Corps : {corps[:200]}",
     )
-    assert "www-authenticate" in entetes.lower(), (
-        "La réponse ne porte pas d'en-tête `WWW-Authenticate`. La RFC 6750 le "
+    assert "www-authenticate" in entetes.lower(), message(
+        en="The answer carries no `WWW-Authenticate` header. RFC 6750 "
+        "requires it: that is how a client learns HOW to authenticate, instead "
+        "of guessing.",
+        fr="La réponse ne porte pas d'en-tête `WWW-Authenticate`. La RFC 6750 le "
         "demande : c'est ainsi qu'un client apprend COMMENT s'authentifier, au "
-        "lieu de deviner."
+        "lieu de deviner.",
     )
 
 
@@ -249,10 +278,13 @@ def test_le_scope_de_lecture_existe_et_porte_l_audience_de_l_api(idp):
     scope = _scope_declare(idp, SCOPE_LECTURE)
 
     inclus = (scope.get("attributes") or {}).get("include.in.token.scope")
-    assert str(inclus).lower() == "true", (
-        f"Le scope « {SCOPE_LECTURE} » n'est pas inclus dans la revendication "
+    assert str(inclus).lower() == "true", message(
+        en=f"The scope \"{SCOPE_LECTURE}\" is not included in the token's "
+        f"`scope` claim (include.in.token.scope = {inclus!r}). The API will "
+        "therefore not be able to see it, even when it is granted.",
+        fr=f"Le scope « {SCOPE_LECTURE} » n'est pas inclus dans la revendication "
         f"`scope` du jeton (include.in.token.scope = {inclus!r}). L'API ne "
-        "pourra donc pas le voir, même quand il est accordé."
+        "pourra donc pas le voir, même quand il est accordé.",
     )
 
     mappeurs = scope.get("protocolMappers") or []
@@ -261,18 +293,26 @@ def test_le_scope_de_lecture_existe_et_porte_l_audience_de_l_api(idp):
         if m.get("protocolMapper") == "oidc-audience-mapper"
         and (m.get("config") or {}).get("included.client.audience") == API_CLIENT
     ]
-    assert audiences, (
-        f"Le scope « {SCOPE_LECTURE} » ne porte aucun mappeur d'audience vers "
+    assert audiences, message(
+        en=f"The scope \"{SCOPE_LECTURE}\" carries no audience mapper towards "
+        f"\"{API_CLIENT}\". A scope alone does not change `aud`: without that "
+        "mapper, the tokens stay intended for `account` and the API cannot "
+        "know they are for it. Mappers found: "
+        f"{[m.get('protocolMapper') for m in mappeurs]}",
+        fr=f"Le scope « {SCOPE_LECTURE} » ne porte aucun mappeur d'audience vers "
         f"« {API_CLIENT} ». Un scope seul ne change pas `aud` : sans ce "
         "mappeur, les jetons restent destinés à `account` et l'API ne peut "
         "pas savoir qu'ils sont pour elle. Mappeurs trouvés : "
-        f"{[m.get('protocolMapper') for m in mappeurs]}"
+        f"{[m.get('protocolMapper') for m in mappeurs]}",
     )
     config = audiences[0].get("config") or {}
-    assert str(config.get("access.token.claim")).lower() == "true", (
-        "Le mappeur d'audience n'écrit pas dans l'access token "
+    assert str(config.get("access.token.claim")).lower() == "true", message(
+        en="The audience mapper does not write into the access token "
+        f"(access.token.claim = {config.get('access.token.claim')!r}). That is "
+        "nevertheless the token the API receives.",
+        fr="Le mappeur d'audience n'écrit pas dans l'access token "
         f"(access.token.claim = {config.get('access.token.claim')!r}). C'est "
-        "pourtant ce jeton que l'API reçoit."
+        "pourtant ce jeton que l'API reçoit.",
     )
 
 
@@ -287,21 +327,29 @@ def test_un_jeton_de_la_bonne_audience_et_du_bon_scope_est_accepte(idp):
 
     audience = revendications.get("aud")
     audiences = audience if isinstance(audience, list) else [audience]
-    assert API_CLIENT in audiences, (
-        f"Le jeton obtenu avec le scope « {SCOPE_LECTURE} » ne porte pas "
+    assert API_CLIENT in audiences, message(
+        en=f"The token obtained with the scope \"{SCOPE_LECTURE}\" does not carry "
+        f"the audience \"{API_CLIENT}\" (aud = {audience!r}). Is the scope's "
+        "audience mapper in place?",
+        fr=f"Le jeton obtenu avec le scope « {SCOPE_LECTURE} » ne porte pas "
         f"l'audience « {API_CLIENT} » (aud = {audience!r}). Le mappeur "
-        "d'audience du scope est-il en place ?"
+        "d'audience du scope est-il en place ?",
     )
-    assert SCOPE_LECTURE in (revendications.get("scope") or "").split(), (
-        f"Le jeton ne porte pas « {SCOPE_LECTURE} » dans sa revendication "
-        f"`scope` (scope = {revendications.get('scope')!r})."
+    assert SCOPE_LECTURE in (revendications.get("scope") or "").split(), message(
+        en=f"The token does not carry \"{SCOPE_LECTURE}\" in its "
+        f"`scope` claim (scope = {revendications.get('scope')!r}).",
+        fr=f"Le jeton ne porte pas « {SCOPE_LECTURE} » dans sa revendication "
+        f"`scope` (scope = {revendications.get('scope')!r}).",
     )
 
     code, corps, _ = _appeler(idp, "GET", jeton)
-    assert code == 200, (
-        f"L'API refuse un jeton de la bonne audience et du bon scope "
+    assert code == 200, message(
+        en=f"The API refuses a token with the right audience and the right scope "
+        f"(HTTP {code}). It has become too strict, and an API that refuses "
+        f"everything protects nothing. Body: {corps[:300]}",
+        fr=f"L'API refuse un jeton de la bonne audience et du bon scope "
         f"(HTTP {code}). Elle est devenue trop stricte, et une API qui refuse "
-        f"tout ne protège rien. Corps : {corps[:300]}"
+        f"tout ne protège rien. Corps : {corps[:300]}",
     )
 
 
@@ -322,24 +370,35 @@ def test_un_jeton_destine_a_une_autre_api_est_refuse(idp):
     revendications = _revendications(jeton)
     audience = revendications.get("aud")
     audiences = audience if isinstance(audience, list) else [audience]
-    assert identifiants["AUTRE_API"] in audiences, (
-        "Le test ne peut pas mesurer : le jeton obtenu ne porte pas "
+    assert identifiants["AUTRE_API"] in audiences, message(
+        en="The test cannot measure: the token obtained does not carry "
+        f"the other API's audience (aud = {audience!r}). It is the lab's "
+        "tooling that is at fault, not your work.",
+        fr="Le test ne peut pas mesurer : le jeton obtenu ne porte pas "
         f"l'audience de l'autre API (aud = {audience!r}). C'est l'outillage du "
-        "lab qui est en cause, pas votre travail."
+        "lab qui est en cause, pas votre travail.",
     )
-    assert API_CLIENT not in audiences, (
-        "Le test ne peut pas mesurer : ce jeton porte AUSSI l'audience de "
+    assert API_CLIENT not in audiences, message(
+        en="The test cannot measure: that token ALSO carries the audience of "
+        f"the lab's API (aud = {audience!r}). Has the scope \"{SCOPE_LECTURE}\" "
+        "become a default scope of the test client? It must stay "
+        "optional.",
+        fr="Le test ne peut pas mesurer : ce jeton porte AUSSI l'audience de "
         f"l'API du lab (aud = {audience!r}). Le scope « {SCOPE_LECTURE} » "
         "est-il devenu un scope par défaut du client de test ? Il doit rester "
-        "optionnel."
+        "optionnel.",
     )
 
     code, corps, _ = _appeler(idp, "GET", jeton)
-    assert code == 401, (
-        f"L'API ACCEPTE un jeton destiné à « {identifiants['AUTRE_API']} » "
+    assert code == 401, message(
+        en=f"The API ACCEPTS a token intended for \"{identifiants['AUTRE_API']}\" "
+        f"(HTTP {code}). That is the hole this lab exists to close: the "
+        "signature is good, the issuer is good, and the token is not for "
+        f"you. Body: {corps[:300]}",
+        fr=f"L'API ACCEPTE un jeton destiné à « {identifiants['AUTRE_API']} » "
         f"(HTTP {code}). C'est la faille que ce lab existe pour fermer : la "
         "signature est bonne, l'émetteur est bon, et le jeton n'est pas pour "
-        f"vous. Corps : {corps[:300]}"
+        f"vous. Corps : {corps[:300]}",
     )
 
 
@@ -355,14 +414,19 @@ def test_un_jeton_sans_le_scope_est_refuse_sur_la_route_qui_l_exige(idp):
     jeton = _jeton_utilisateur(idp, f"openid {SCOPE_LECTURE}")
 
     code, corps, entetes = _appeler(idp, "POST", jeton)
-    assert code == 403, (
-        f"Une écriture avec un jeton de LECTURE seule rend HTTP {code} au lieu "
-        f"de 403. Corps : {corps[:300]}"
+    assert code == 403, message(
+        en=f"A write with a READ-only token returns HTTP {code} instead "
+        f"of 403. Body: {corps[:300]}",
+        fr=f"Une écriture avec un jeton de LECTURE seule rend HTTP {code} au lieu "
+        f"de 403. Corps : {corps[:300]}",
     )
-    assert "insufficient_scope" in (corps + entetes).lower(), (
-        "Le refus ne nomme pas `insufficient_scope`. La RFC 6750 réserve ce "
+    assert "insufficient_scope" in (corps + entetes).lower(), message(
+        en="The refusal does not name `insufficient_scope`. RFC 6750 reserves that "
+        "code for this precise case, and it is what tells the client that the problem "
+        f"is the permission and not the identity. Body: {corps[:200]}",
+        fr="Le refus ne nomme pas `insufficient_scope`. La RFC 6750 réserve ce "
         "code à ce cas précis, et c'est lui qui dit au client que le problème "
-        f"est la permission et non l'identité. Corps : {corps[:200]}"
+        f"est la permission et non l'identité. Corps : {corps[:200]}",
     )
 
 
@@ -377,41 +441,57 @@ def test_le_service_de_sauvegarde_lit_mais_n_ecrit_pas(idp):
     """
     client = _client_declare(idp, SERVICE)
 
-    assert client.get("publicClient") is False, (
-        f"Le client « {SERVICE} » est public. Un service qui tourne sur un "
-        "serveur peut garder un secret, et doit donc être confidentiel."
+    assert client.get("publicClient") is False, message(
+        en=f"The client \"{SERVICE}\" is public. A service running on a "
+        "server can keep a secret, and must therefore be confidential.",
+        fr=f"Le client « {SERVICE} » est public. Un service qui tourne sur un "
+        "serveur peut garder un secret, et doit donc être confidentiel.",
     )
-    assert client.get("serviceAccountsEnabled") is True, (
-        f"Le client « {SERVICE} » n'a pas de compte de service. Sans lui, "
+    assert client.get("serviceAccountsEnabled") is True, message(
+        en=f"The client \"{SERVICE}\" has no service account. Without it, "
+        "the client credentials grant is refused, and the service has no "
+        "way to authenticate without a user.",
+        fr=f"Le client « {SERVICE} » n'a pas de compte de service. Sans lui, "
         "l'octroi par client credentials est refusé, et le service n'a aucun "
-        "moyen de s'authentifier sans utilisateur."
+        "moyen de s'authentifier sans utilisateur.",
     )
 
     jeton = _jeton_du_service(idp)
     revendications = _revendications(jeton)
     accordes = (revendications.get("scope") or "").split()
-    assert SCOPE_LECTURE in accordes, (
-        f"Le jeton du service ne porte pas « {SCOPE_LECTURE} » "
+    assert SCOPE_LECTURE in accordes, message(
+        en=f"The service's token does not carry \"{SCOPE_LECTURE}\" "
+        f"(scope = {accordes}). The scope must be attached to it BY DEFAULT: an "
+        "optional scope only arrives when it is asked for, and a service has "
+        "nobody to ask for it.",
+        fr=f"Le jeton du service ne porte pas « {SCOPE_LECTURE} » "
         f"(scope = {accordes}). Le scope doit lui être attaché PAR DÉFAUT : un "
         "scope optionnel n'arrive que s'il est demandé, et un service n'a "
-        "personne pour le demander."
+        "personne pour le demander.",
     )
-    assert SCOPE_ECRITURE not in accordes, (
-        f"Le jeton du service porte « {SCOPE_ECRITURE} » (scope = {accordes}). "
-        "Un service de sauvegarde lit, il n'écrit pas."
+    assert SCOPE_ECRITURE not in accordes, message(
+        en=f"The service's token carries \"{SCOPE_ECRITURE}\" (scope = {accordes}). "
+        "A backup service reads, it does not write.",
+        fr=f"Le jeton du service porte « {SCOPE_ECRITURE} » (scope = {accordes}). "
+        "Un service de sauvegarde lit, il n'écrit pas.",
     )
 
     code, corps, _ = _appeler(idp, "GET", jeton)
-    assert code == 200, (
-        f"Le service ne peut pas lire (HTTP {code}). Son jeton porte pourtant "
-        f"le scope de lecture. Corps : {corps[:300]}"
+    assert code == 200, message(
+        en=f"The service cannot read (HTTP {code}). Its token nevertheless carries "
+        f"the read scope. Body: {corps[:300]}",
+        fr=f"Le service ne peut pas lire (HTTP {code}). Son jeton porte pourtant "
+        f"le scope de lecture. Corps : {corps[:300]}",
     )
 
     code, corps, _ = _appeler(idp, "POST", jeton)
-    assert code == 403, (
-        f"Le service peut ÉCRIRE (HTTP {code}). Un accès machine mal borné est "
+    assert code == 403, message(
+        en=f"The service can WRITE (HTTP {code}). A badly bounded machine access is "
+        f"more dangerous than a human one: nobody watches it. "
+        f"Body: {corps[:300]}",
+        fr=f"Le service peut ÉCRIRE (HTTP {code}). Un accès machine mal borné est "
         f"plus dangereux qu'un accès humain : personne ne le surveille. "
-        f"Corps : {corps[:300]}"
+        f"Corps : {corps[:300]}",
     )
 
 
@@ -428,7 +508,10 @@ def test_le_secret_du_service_ne_traine_dans_aucun_fichier_lisible(idp):
     client = _client_declare(idp, SERVICE)
     secret = _api_admin(idp, f"clients/{client['id']}/client-secret")
     valeur = (secret or {}).get("value", "")
-    assert valeur, f"Le client « {SERVICE} » n'a pas de secret."
+    assert valeur, message(
+        en=f"The client \"{SERVICE}\" has no secret.",
+        fr=f"Le client « {SERVICE} » n'a pas de secret.",
+    )
 
     # `grep -r` sur les répertoires du lab. Le secret est passé par un fichier
     # pour ne pas apparaître dans la ligne de commande, que `ps` montre à tous.
@@ -438,10 +521,15 @@ def test_le_secret_du_service_ne_traine_dans_aucun_fichier_lisible(idp):
         "rm -f /tmp/motif-test"
     )
     fautifs = [li for li in res.stdout.splitlines() if li.strip()]
-    assert not fautifs, (
-        "Le secret du service est écrit en clair dans :\n"
+    assert not fautifs, message(
+        en="The service's secret is written in clear in:\n"
+        + "\n".join(f"  {f}" for f in fautifs)
+        + "\n\nA client secret is not written next to the code. The service "
+        "receives it through its environment, and the administration API stays "
+        "the only source.",
+        fr="Le secret du service est écrit en clair dans :\n"
         + "\n".join(f"  {f}" for f in fautifs)
         + "\n\nUn secret de client ne s'écrit pas à côté du code. Le service "
         "le reçoit par son environnement, et l'API d'administration reste la "
-        "seule source."
+        "seule source.",
     )

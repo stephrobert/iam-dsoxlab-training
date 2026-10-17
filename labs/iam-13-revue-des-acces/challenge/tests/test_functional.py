@@ -27,7 +27,7 @@ import json
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -58,10 +58,13 @@ def idp():
 
 def _identifiants(hote) -> dict[str, str]:
     fichier = hote.file(IDENTIFIANTS)
-    assert fichier.exists, (
-        f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
+    assert fichier.exists, message(
+        en=f"{IDENTIFIANTS} is missing. The lab's setup did not run, or its "
+        "staging script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
         "script de mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -81,9 +84,11 @@ def _jeton_admin(hote) -> str:
         '-d "username=$u" -d "password=$p" | jq -r \'.access_token // empty\''
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        "Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
-        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})"
+    assert jeton, message(
+        en="No administration token could be obtained. Is Keycloak answering "
+        f"on {KEYCLOAK}, and is the base installed? (rc={res.rc})",
+        fr="Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
+        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})",
     )
     return jeton
 
@@ -100,8 +105,12 @@ def _api(hote, chemin: str) -> object:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
-            f"{res.stdout[:300]}"
+            message(
+            en=f"The administration API returned no JSON for {chemin}: "
+            f"{res.stdout[:300]}",
+            fr=f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
+            f"{res.stdout[:300]}",
+        )
         )
 
 
@@ -117,9 +126,11 @@ def _brut(hote, chemin: str) -> str:
 
 def _client(hote, nom: str) -> dict:
     trouves = _api(hote, f"realms/{REALM}/clients?clientId={nom}") or []
-    assert trouves, (
-        f"Aucun client « {nom} » dans le realm « {REALM} ». L'API SCIM a "
-        "besoin d'un client qui s'authentifie pour elle."
+    assert trouves, message(
+        en=f"No client \"{nom}\" in the realm \"{REALM}\". The SCIM API needs a "
+        "client that authenticates for it.",
+        fr=f"Aucun client « {nom} » dans le realm « {REALM} ». L'API SCIM a "
+        "besoin d'un client qui s'authentifie pour elle.",
     )
     return trouves[0]
 
@@ -131,9 +142,11 @@ def _jeton_du_client_scim(hote) -> str:
     client = _client(hote, nom)
     secret = _api(hote, f"realms/{REALM}/clients/{client['id']}/client-secret")
     valeur = (secret or {}).get("value", "")
-    assert valeur, (
-        f"Le client « {nom} » n'a pas de secret. Un accès machine passe par un "
-        "client CONFIDENTIEL."
+    assert valeur, message(
+        en=f"The client \"{nom}\" has no secret. Machine access goes through a "
+        "CONFIDENTIAL client.",
+        fr=f"Le client « {nom} » n'a pas de secret. Un accès machine passe par un "
+        "client CONFIDENTIEL.",
     )
     res = hote.run(
         f"curl -sS --max-time 20 -X POST "
@@ -142,9 +155,11 @@ def _jeton_du_client_scim(hote) -> str:
         f"-d client_secret={valeur!r} | jq -r '.access_token // empty'"
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        f"Le client « {nom} » n'obtient pas de jeton en client credentials. Son "
-        "compte de service est-il activé ?"
+    assert jeton, message(
+        en=f"The client \"{nom}\" does not obtain a token with client credentials. Is "
+        "its service account enabled?",
+        fr=f"Le client « {nom} » n'obtient pas de jeton en client credentials. Son "
+        "compte de service est-il activé ?",
     )
     return jeton
 
@@ -159,8 +174,9 @@ def _scim(hote, chemin: str, methode: str = "GET") -> tuple[int, str]:
     )
     morceaux = res.stdout.split("\n", 1)
     code = morceaux[0].strip()
-    assert code.isdigit(), (
-        f"L'API SCIM n'a pas répondu : {res.stdout[:300]}"
+    assert code.isdigit(), message(
+        en=f"The SCIM API did not answer: {res.stdout[:300]}",
+        fr=f"L'API SCIM n'a pas répondu : {res.stdout[:300]}",
     )
     return int(code), (morceaux[1] if len(morceaux) > 1 else "")
 
@@ -180,12 +196,19 @@ def test_l_api_scim_est_ouverte_sur_le_realm(idp):
     `attributes`, le PUT réussit et la valeur relue reste fausse.
     """
     realm = _api(idp, f"realms/{REALM}")
-    assert isinstance(realm, dict), f"Le realm « {REALM} » est introuvable."
-    assert realm.get("scimApiEnabled") is True, (
-        "Le realm ne déclare pas l'API SCIM ouverte "
+    assert isinstance(realm, dict), message(
+        en=f"The realm \"{REALM}\" cannot be found.",
+        fr=f"Le realm « {REALM} » est introuvable.",
+    )
+    assert realm.get("scimApiEnabled") is True, message(
+        en="The realm does not declare the SCIM API open "
+        f"(scimApiEnabled = {realm.get('scimApiEnabled')!r}). Mind the "
+        "place: that flag lives at the ROOT of the realm's representation, "
+        "not in its `attributes`.",
+        fr="Le realm ne déclare pas l'API SCIM ouverte "
         f"(scimApiEnabled = {realm.get('scimApiEnabled')!r}). Attention à "
         "l'endroit : ce drapeau vit à la RACINE de la représentation du realm, "
-        "pas dans ses `attributes`."
+        "pas dans ses `attributes`.",
     )
 
     identifiants = _identifiants(idp)
@@ -194,14 +217,19 @@ def test_l_api_scim_est_ouverte_sur_le_realm(idp):
         f"'{identifiants['URL_SCIM']}/ServiceProviderConfig'"
     )
     code = res.stdout.strip()
-    assert code != "404", (
-        "L'API SCIM rend toujours 404 : elle n'est pas servie. Le drapeau est "
-        "peut-être posé au mauvais endroit."
+    assert code != "404", message(
+        en="The SCIM API still returns 404: it is not being served. The flag may "
+        "be set in the wrong place.",
+        fr="L'API SCIM rend toujours 404 : elle n'est pas servie. Le drapeau est "
+        "peut-être posé au mauvais endroit.",
     )
-    assert code == "401", (
-        f"Sans jeton, l'API SCIM devrait rendre 401 ; elle rend {code}. Une API "
+    assert code == "401", message(
+        en=f"With no token, the SCIM API should return 401; it returns {code}. A "
+        "provisioning API that answers without authentication is an open "
+        "administration door.",
+        fr=f"Sans jeton, l'API SCIM devrait rendre 401 ; elle rend {code}. Une API "
         "de provisionnement qui répond sans authentification est une porte "
-        "d'administration ouverte."
+        "d'administration ouverte.",
     )
 
 
@@ -217,23 +245,30 @@ def test_le_client_scim_est_confidentiel_et_borne(idp):
     identifiants = _identifiants(idp)
     client = _client(idp, identifiants["CLIENT_SCIM_ATTENDU"])
 
-    assert client.get("publicClient") is False, (
-        "Le client SCIM est public : n'importe qui pourrait s'en servir pour "
-        "créer des comptes."
+    assert client.get("publicClient") is False, message(
+        en="The SCIM client is public: anyone could use it to create "
+        "accounts.",
+        fr="Le client SCIM est public : n'importe qui pourrait s'en servir pour "
+        "créer des comptes.",
     )
-    assert client.get("serviceAccountsEnabled") is True, (
-        "Le client SCIM n'a pas de compte de service, donc il ne peut pas "
-        "s'authentifier sans utilisateur."
+    assert client.get("serviceAccountsEnabled") is True, message(
+        en="The SCIM client has no service account, so it cannot authenticate "
+        "without a user.",
+        fr="Le client SCIM n'a pas de compte de service, donc il ne peut pas "
+        "s'authentifier sans utilisateur.",
     )
-    assert client.get("standardFlowEnabled") is False, (
-        "Le flux de code d'autorisation est ouvert sur un client machine, ce "
-        "qui n'a pas de sens : personne ne se connecte avec lui."
+    assert client.get("standardFlowEnabled") is False, message(
+        en="The authorization code flow is open on a machine client, which makes "
+        "no sense: nobody logs in with it.",
+        fr="Le flux de code d'autorisation est ouvert sur un client machine, ce "
+        "qui n'a pas de sens : personne ne se connecte avec lui.",
     )
 
     compte_de_service = _api(
         idp, f"realms/{REALM}/clients/{client['id']}/service-account-user")
-    assert compte_de_service and compte_de_service.get("id"), (
-        "Le compte de service du client SCIM est introuvable."
+    assert compte_de_service and compte_de_service.get("id"), message(
+        en="The SCIM client's service account cannot be found.",
+        fr="Le compte de service du client SCIM est introuvable.",
     )
     attributions = _api(
         idp,
@@ -241,13 +276,17 @@ def test_le_client_scim_est_confidentiel_et_borne(idp):
     tous = set()
     for bloc in (attributions.get("clientMappings") or {}).values():
         tous |= {r["name"] for r in bloc.get("mappings") or []}
-    assert tous & {"manage-users", "view-users", "query-users"}, (
-        "Le compte de service du client SCIM n'a aucun droit sur les comptes "
-        f"(rôles de client : {sorted(tous)}). Il ne pourra rien provisionner."
+    assert tous & {"manage-users", "view-users", "query-users"}, message(
+        en="The SCIM client's service account has no right over the accounts "
+        f"(client roles: {sorted(tous)}). It will be able to provision nothing.",
+        fr="Le compte de service du client SCIM n'a aucun droit sur les comptes "
+        f"(rôles de client : {sorted(tous)}). Il ne pourra rien provisionner.",
     )
-    assert "realm-admin" not in tous, (
-        "Le compte de service porte `realm-admin`, qui donne tout. Une API de "
-        "provisionnement n'a pas besoin d'administrer le realm."
+    assert "realm-admin" not in tous, message(
+        en="The service account carries `realm-admin`, which gives everything. A "
+        "provisioning API does not need to administer the realm.",
+        fr="Le compte de service porte `realm-admin`, qui donne tout. Une API de "
+        "provisionnement n'a pas besoin d'administrer le realm.",
     )
 
 
@@ -271,16 +310,24 @@ def test_l_api_scim_accepte_le_jeton_du_client(idp):
         except json.JSONDecodeError:
             detail = corps[:120]
         pytest.fail(
-            f"L'API SCIM refuse le jeton du client : « {detail} ». Si elle "
+            message(
+            en=f"The SCIM API refuses the client's token: \"{detail}\". If it "
+            "speaks of audience, the token does not carry the right one: the "
+            "API expects ITS OWN URL as the audience, and an audience mapper "
+            "on the client gives it to it.",
+            fr=f"L'API SCIM refuse le jeton du client : « {detail} ». Si elle "
             "parle d'audience, le jeton n'en porte pas la bonne : l'API attend "
             "SA PROPRE URL comme audience, et un mappeur d'audience sur le "
-            "client la lui donne."
+            "client la lui donne.",
         )
-    assert code == 200, (
-        f"L'API SCIM rend {code} au lieu de 200 : {corps[:250]}"
+        )
+    assert code == 200, message(
+        en=f"The SCIM API returns {code} instead of 200: {corps[:250]}",
+        fr=f"L'API SCIM rend {code} au lieu de 200 : {corps[:250]}",
     )
-    assert "ServiceProviderConfig" in corps, (
-        f"La réponse n'est pas celle attendue : {corps[:250]}"
+    assert "ServiceProviderConfig" in corps, message(
+        en=f"The answer is not the expected one: {corps[:250]}",
+        fr=f"La réponse n'est pas celle attendue : {corps[:250]}",
     )
 
 
@@ -297,29 +344,39 @@ def test_un_compte_a_ete_provisionne_par_l_api(idp):
     attendu = identifiants["COMPTE_A_PROVISIONNER"]
 
     trouves = _api(idp, f"realms/{REALM}/users?username={attendu}&exact=true") or []
-    assert trouves, (
-        f"Aucun compte « {attendu} » dans le realm. Le challenge demande de le "
-        "provisionner PAR l'API SCIM."
+    assert trouves, message(
+        en=f"No \"{attendu}\" account in the realm. The challenge asks you to "
+        "provision it THROUGH the SCIM API.",
+        fr=f"Aucun compte « {attendu} » dans le realm. Le challenge demande de le "
+        "provisionner PAR l'API SCIM.",
     )
 
     code, corps = _scim(idp, f"Users?filter=userName%20eq%20%22{attendu}%22")
-    assert code == 200, (
-        f"L'API SCIM ne rend pas la liste des comptes (HTTP {code}) : "
-        f"{corps[:250]}"
+    assert code == 200, message(
+        en=f"The SCIM API does not return the list of accounts (HTTP {code}): "
+        f"{corps[:250]}",
+        fr=f"L'API SCIM ne rend pas la liste des comptes (HTTP {code}) : "
+        f"{corps[:250]}",
     )
-    assert attendu in corps, (
-        f"L'API SCIM ne connaît pas « {attendu} », alors que l'API "
-        f"d'administration le voit. Réponse : {corps[:250]}"
+    assert attendu in corps, message(
+        en=f"The SCIM API does not know \"{attendu}\", although the administration "
+        f"API sees it. Answer: {corps[:250]}",
+        fr=f"L'API SCIM ne connaît pas « {attendu} », alors que l'API "
+        f"d'administration le voit. Réponse : {corps[:250]}",
     )
 
     compte = _api(idp, f"realms/{REALM}/users/{trouves[0]['id']}")
-    assert compte.get("enabled") is True, (
-        f"Le compte « {attendu} » est désactivé à sa création : un compte "
-        "provisionné doit pouvoir servir."
+    assert compte.get("enabled") is True, message(
+        en=f"The account \"{attendu}\" is disabled at its creation: a "
+        "provisioned account must be able to serve.",
+        fr=f"Le compte « {attendu} » est désactivé à sa création : un compte "
+        "provisionné doit pouvoir servir.",
     )
-    assert compte.get("email"), (
-        f"Le compte « {attendu} » n'a pas d'adresse. Un compte sans adresse ne "
-        "reçoit ni invitation ni réinitialisation."
+    assert compte.get("email"), message(
+        en=f"The account \"{attendu}\" has no address. An account with no address "
+        "receives neither an invitation nor a reset.",
+        fr=f"Le compte « {attendu} » n'a pas d'adresse. Un compte sans adresse ne "
+        "reçoit ni invitation ni réinitialisation.",
     )
 
 
@@ -336,22 +393,30 @@ def test_un_workflow_desactive_au_lieu_de_supprimer(idp):
     Mesuré le 2026-10-16 : l'API des workflows rend du YAML, pas du JSON.
     """
     brut = _brut(idp, f"realms/{REALM}/workflows")
-    assert brut.strip() not in ("", "--- []", "[]"), (
-        "Aucun workflow dans le realm. Le challenge en demande un, qui "
-        "désactive un compte inactif."
+    assert brut.strip() not in ("", "--- []", "[]"), message(
+        en="No workflow in the realm. The challenge asks for one, which "
+        "disables an inactive account.",
+        fr="Aucun workflow dans le realm. Le challenge en demande un, qui "
+        "désactive un compte inactif.",
     )
 
     minuscule = brut.lower()
     destructrices = sorted(e for e in ETAPES_DESTRUCTRICES if e in minuscule)
-    assert not destructrices, (
-        f"Un workflow emploie {destructrices}, qui DÉTRUIT le compte. La "
+    assert not destructrices, message(
+        en=f"A workflow uses {destructrices}, which DESTROYS the account. The "
+        "traceability disappears along with the access, and it disappears by "
+        "itself, with nobody deciding. A lifecycle disables.\n\n"
+        f"Workflows read:\n{brut[:400]}",
+        fr=f"Un workflow emploie {destructrices}, qui DÉTRUIT le compte. La "
         "traçabilité disparaît avec l'accès, et elle disparaît toute seule, "
         "sans que personne décide. Un cycle de vie désactive.\n\n"
-        f"Workflows lus :\n{brut[:400]}"
+        f"Workflows lus :\n{brut[:400]}",
     )
-    assert "disable-user" in minuscule, (
-        "Aucun workflow ne désactive de compte. Celui qui est demandé doit "
-        f"employer une étape de désactivation.\n\nWorkflows lus :\n{brut[:400]}"
+    assert "disable-user" in minuscule, message(
+        en="No workflow disables an account. The one being asked for must "
+        f"use a disabling step.\n\nWorkflows read:\n{brut[:400]}",
+        fr="Aucun workflow ne désactive de compte. Celui qui est demandé doit "
+        f"employer une étape de désactivation.\n\nWorkflows lus :\n{brut[:400]}",
     )
 
 
@@ -370,42 +435,55 @@ def test_la_revue_trouve_l_acces_injustifie(idp):
     porteur = identifiants["PORTEUR_DU_ROLE"]
 
     fichier = idp.file(chemin)
-    assert fichier.exists, (
-        f"{chemin} est absent. La revue fait partie du travail : sans trace "
-        "écrite, personne ne peut dire qui avait accès à quoi."
+    assert fichier.exists, message(
+        en=f"{chemin} is missing. The review is part of the work: with no written "
+        "trace, nobody can say who had access to what.",
+        fr=f"{chemin} est absent. La revue fait partie du travail : sans trace "
+        "écrite, personne ne peut dire qui avait accès à quoi.",
     )
     try:
         revue = json.loads(fichier.content_string)
     except json.JSONDecodeError as erreur:
-        pytest.fail(f"{chemin} n'est pas du JSON lisible : {erreur}")
+        pytest.fail(message(
+            en=f"{chemin} is not readable JSON: {erreur}",
+            fr=f"{chemin} n'est pas du JSON lisible : {erreur}",
+        ))
 
     entrees = revue["comptes"] if isinstance(revue, dict) and "comptes" in revue \
         else revue
-    assert isinstance(entrees, list) and entrees, (
-        f"{chemin} doit porter une liste de comptes non vide."
+    assert isinstance(entrees, list) and entrees, message(
+        en=f"{chemin} must carry a non-empty list of accounts.",
+        fr=f"{chemin} doit porter une liste de comptes non vide.",
     )
 
     par_nom = {}
     for entree in entrees:
         nom = entree.get("username") or entree.get("compte") or entree.get("nom")
-        assert nom, (
-            f"Une entrée de {chemin} ne nomme pas son compte : "
-            f"{json.dumps(entree, ensure_ascii=False)[:200]}"
+        assert nom, message(
+            en=f"An entry of {chemin} does not name its account: "
+            f"{json.dumps(entree, ensure_ascii=False)[:200]}",
+            fr=f"Une entrée de {chemin} ne nomme pas son compte : "
+            f"{json.dumps(entree, ensure_ascii=False)[:200]}",
         )
         par_nom[nom] = entree
 
     attendus = set(identifiants["COMPTES"].split())
     manquants = sorted(attendus - set(par_nom))
-    assert not manquants, (
-        f"{chemin} ne liste pas {manquants}. Une revue incomplète ne prouve "
-        f"rien. Comptes listés : {sorted(par_nom)}"
+    assert not manquants, message(
+        en=f"{chemin} does not list {manquants}. An incomplete review proves "
+        f"nothing. Accounts listed: {sorted(par_nom)}",
+        fr=f"{chemin} ne liste pas {manquants}. Une revue incomplète ne prouve "
+        f"rien. Comptes listés : {sorted(par_nom)}",
     )
     for nom, entree in par_nom.items():
         clefs = set(entree)
-        assert clefs & {"roles", "rôles", "realmRoles"}, (
-            f"L'entrée de « {nom} » ne porte pas de liste de rôles "
+        assert clefs & {"roles", "rôles", "realmRoles"}, message(
+            en=f"The entry of \"{nom}\" carries no list of roles "
+            f"(keys: {sorted(clefs)}). That is where the unjustified access "
+            "is, and a review by groups alone would not see it.",
+            fr=f"L'entrée de « {nom} » ne porte pas de liste de rôles "
             f"(clefs : {sorted(clefs)}). C'est là que l'accès injustifié se "
-            "trouve, et une revue par groupes seuls ne le verrait pas."
+            "trouve, et une revue par groupes seuls ne le verrait pas.",
         )
 
     # ET LE RÔLE DOIT AVOIR DISPARU, dans le realm comme dans la revue.
@@ -416,9 +494,11 @@ def test_la_revue_trouve_l_acces_injustifie(idp):
         "/role-mappings",
     ) or {}
     directs = {r["name"] for r in attributions.get("realmMappings") or []}
-    assert role not in directs, (
-        f"Le compte « {porteur} » porte encore « {role} ». La revue sert à "
-        "trouver cet accès et à le retirer, pas seulement à le consigner."
+    assert role not in directs, message(
+        en=f"The account \"{porteur}\" still carries \"{role}\". The review exists "
+        "to find that access and remove it, not merely to record it.",
+        fr=f"Le compte « {porteur} » porte encore « {role} ». La revue sert à "
+        "trouver cet accès et à le retirer, pas seulement à le consigner.",
     )
 
     entree = par_nom[porteur]
@@ -426,8 +506,11 @@ def test_la_revue_trouve_l_acces_injustifie(idp):
         entree.get("roles") or entree.get("rôles")
         or entree.get("realmRoles") or []
     )
-    assert role not in roles_lus, (
-        f"La revue montre « {porteur} » avec « {role} ». Elle a été écrite "
+    assert role not in roles_lus, message(
+        en=f"The review shows \"{porteur}\" with \"{role}\". It was written "
+        "BEFORE the removal: a review describing a bygone state is worse "
+        "than no review.",
+        fr=f"La revue montre « {porteur} » avec « {role} ». Elle a été écrite "
         "AVANT le retrait : une revue qui décrit un état révolu est pire "
-        "qu'aucune revue."
+        "qu'aucune revue.",
     )

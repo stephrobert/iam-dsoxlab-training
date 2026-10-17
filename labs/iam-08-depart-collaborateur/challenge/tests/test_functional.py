@@ -32,7 +32,7 @@ import time
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -60,10 +60,13 @@ def idp():
 
 def _fichier_en_paires(hote, chemin: str) -> dict[str, str]:
     fichier = hote.file(chemin)
-    assert fichier.exists, (
-        f"{chemin} est absent. Le setup du lab n'a pas tourné, ou son script de "
+    assert fichier.exists, message(
+        en=f"{chemin} is missing. The lab's setup did not run, or its staging "
+        "script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{chemin} est absent. Le setup du lab n'a pas tourné, ou son script de "
         "mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -87,9 +90,11 @@ def _jeton_admin(hote) -> str:
         '-d "username=$u" -d "password=$p" | jq -r \'.access_token // empty\''
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        "Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
-        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})"
+    assert jeton, message(
+        en="No administration token could be obtained. Is Keycloak answering "
+        f"on {KEYCLOAK}, and is the base installed? (rc={res.rc})",
+        fr="Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
+        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})",
     )
     return jeton
 
@@ -106,8 +111,12 @@ def _api(hote, chemin: str) -> object:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
-            f"{res.stdout[:300]}"
+            message(
+            en=f"The administration API returned no JSON for {chemin}: "
+            f"{res.stdout[:300]}",
+            fr=f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
+            f"{res.stdout[:300]}",
+        )
         )
 
 
@@ -140,15 +149,21 @@ def test_le_compte_existe_toujours(idp):
     qui_part = identifiants["QUI_PART"]
 
     compte = _compte(idp, qui_part)
-    assert compte, (
-        f"Le compte « {qui_part} » a disparu du realm. Il a été SUPPRIMÉ, et "
+    assert compte, message(
+        en=f"The account \"{qui_part}\" has disappeared from the realm. It was "
+        "DELETED, and with it the trace of what it could do. A departure is "
+        "handled by a deactivation: the access is cut, and the history stays "
+        "auditable.",
+        fr=f"Le compte « {qui_part} » a disparu du realm. Il a été SUPPRIMÉ, et "
         "avec lui la trace de ce qu'il pouvait faire. Un départ se traite par "
         "une désactivation : l'accès est coupé, et l'historique reste "
-        "auditable."
+        "auditable.",
     )
-    assert compte.get("federationLink"), (
-        f"Le compte « {qui_part} » n'est plus rattaché à la fédération. A-t-il "
-        "été recréé à la main après une suppression ?"
+    assert compte.get("federationLink"), message(
+        en=f"The account \"{qui_part}\" is no longer attached to the federation. Was "
+        "it recreated by hand after a deletion?",
+        fr=f"Le compte « {qui_part} » n'est plus rattaché à la fédération. A-t-il "
+        "été recréé à la main après une suppression ?",
     )
 
 
@@ -166,17 +181,24 @@ def test_le_compte_est_desactive(idp):
     qui_part = identifiants["QUI_PART"]
 
     compte = _compte(idp, qui_part)
-    assert compte, f"Le compte « {qui_part} » est introuvable."
-    assert compte.get("enabled") is False, (
-        f"Le compte « {qui_part} » est toujours actif. Il peut donc encore "
-        "ouvrir une session, et son mot de passe fonctionne toujours."
+    assert compte, message(
+        en=f"The account \"{qui_part}\" cannot be found.",
+        fr=f"Le compte « {qui_part} » est introuvable.",
+    )
+    assert compte.get("enabled") is False, message(
+        en=f"The account \"{qui_part}\" is still enabled. It can therefore still "
+        "open a session, and its password still works.",
+        fr=f"Le compte « {qui_part} » est toujours actif. Il peut donc encore "
+        "ouvrir une session, et son mot de passe fonctionne toujours.",
     )
 
     for reste in identifiants["QUI_RESTE"].split():
         autre = _compte(idp, reste)
-        assert autre and autre.get("enabled") is True, (
-            f"Le compte « {reste} », qui ne part pas, a été désactivé aussi. "
-            "Un départ ne coupe les accès que d'une personne."
+        assert autre and autre.get("enabled") is True, message(
+            en=f"The account \"{reste}\", which is not leaving, was deactivated too. "
+            "A departure cuts the accesses of one person only.",
+            fr=f"Le compte « {reste} », qui ne part pas, a été désactivé aussi. "
+            "Un départ ne coupe les accès que d'une personne.",
         )
 
 
@@ -194,13 +216,19 @@ def test_aucune_session_ne_survit(idp):
     qui_part = identifiants["QUI_PART"]
 
     trouves = _api(idp, f"realms/{REALM}/users?username={qui_part}&exact=true") or []
-    assert trouves, f"Le compte « {qui_part} » est introuvable."
+    assert trouves, message(
+        en=f"The account \"{qui_part}\" cannot be found.",
+        fr=f"Le compte « {qui_part} » est introuvable.",
+    )
     sessions = _api(idp, f"realms/{REALM}/users/{trouves[0]['id']}/sessions") or []
 
-    assert not sessions, (
-        f"Le compte « {qui_part} » compte encore {len(sessions)} session(s) "
+    assert not sessions, message(
+        en=f"The account \"{qui_part}\" still has {len(sessions)} active "
+        "session(s). Disabling an account does NOT close its sessions: this is "
+        "measured, and it is the gesture one forgets because nothing signals it.",
+        fr=f"Le compte « {qui_part} » compte encore {len(sessions)} session(s) "
         "active(s). Désactiver un compte ne ferme PAS ses sessions : c'est "
-        "mesuré, et c'est le geste qu'on oublie parce que rien ne le signale."
+        "mesuré, et c'est le geste qu'on oublie parce que rien ne le signale.",
     )
 
 
@@ -226,17 +254,26 @@ def test_le_jeton_de_rafraichissement_est_refuse(idp):
     try:
         reponse = json.loads(res.stdout or "{}")
     except json.JSONDecodeError:
-        pytest.fail(f"Réponse illisible du point de jeton : {res.stdout[:300]}")
+        pytest.fail(message(
+            en=f"Unreadable answer from the token endpoint: {res.stdout[:300]}",
+            fr=f"Réponse illisible du point de jeton : {res.stdout[:300]}",
+        ))
 
-    assert not reponse.get("access_token"), (
-        "Le jeton de rafraîchissement de la personne qui part FONCTIONNE "
+    assert not reponse.get("access_token"), message(
+        en="The refresh token of the person leaving STILL WORKS. Their "
+        "application can therefore extend their access indefinitely, "
+        "without ever asking for a password again.",
+        fr="Le jeton de rafraîchissement de la personne qui part FONCTIONNE "
         "ENCORE. Son application peut donc prolonger son accès indéfiniment, "
-        "sans jamais redemander de mot de passe."
+        "sans jamais redemander de mot de passe.",
     )
-    assert reponse.get("error") == "invalid_grant", (
-        f"Le refus n'est pas celui attendu : {reponse!r}. Mesuré sur Keycloak "
+    assert reponse.get("error") == "invalid_grant", message(
+        en=f"The refusal is not the expected one: {reponse!r}. Measured on Keycloak "
+        "26.8.1, a disabled account returns `invalid_grant` with \"User "
+        "disabled\", and a closed session \"Session not active\".",
+        fr=f"Le refus n'est pas celui attendu : {reponse!r}. Mesuré sur Keycloak "
         "26.8.1, un compte désactivé rend `invalid_grant` avec « User "
-        "disabled », et une session fermée « Session not active »."
+        "disabled », et une session fermée « Session not active ».",
     )
 
 
@@ -254,12 +291,18 @@ def test_les_groupes_ont_ete_retires(idp):
     qui_part = identifiants["QUI_PART"]
 
     trouves = _api(idp, f"realms/{REALM}/users?username={qui_part}&exact=true") or []
-    assert trouves, f"Le compte « {qui_part} » est introuvable."
+    assert trouves, message(
+        en=f"The account \"{qui_part}\" cannot be found.",
+        fr=f"Le compte « {qui_part} » est introuvable.",
+    )
     groupes = _api(idp, f"realms/{REALM}/users/{trouves[0]['id']}/groups") or []
-    assert not groupes, (
-        f"Le compte « {qui_part} » appartient encore à "
+    assert not groupes, message(
+        en=f"The account \"{qui_part}\" still belongs to "
+        f"{[g['name'] for g in groupes]}. An absent-minded reactivation would "
+        "give it back all its rights.",
+        fr=f"Le compte « {qui_part} » appartient encore à "
         f"{[g['name'] for g in groupes]}. Une réactivation distraite lui "
-        "rendrait tous ses droits."
+        "rendrait tous ses droits.",
     )
 
     # Et le rôle accordé DIRECTEMENT, hors groupe, qui est celui qu'on oublie.
@@ -268,22 +311,30 @@ def test_les_groupes_ont_ete_retires(idp):
         idp, f"realms/{REALM}/users/{trouves[0]['id']}/role-mappings"
     ) or {}
     directs = {r["name"] for r in attributions.get("realmMappings") or []}
-    assert role not in directs, (
-        f"Le compte garde le rôle « {role} », qui lui était accordé "
+    assert role not in directs, message(
+        en=f"The account keeps the role \"{role}\", which was granted to it "
+        "DIRECTLY and not through a group. That is the one a review by "
+        "groups never sees, and that is why it is in this lab.",
+        fr=f"Le compte garde le rôle « {role} », qui lui était accordé "
         "DIRECTEMENT et non par un groupe. C'est celui qu'une revue par "
-        "groupes ne voit jamais, et c'est pour cela qu'il est dans ce lab."
+        "groupes ne voit jamais, et c'est pour cela qu'il est dans ce lab.",
     )
 
     # Les autres gardent les leurs.
     for reste in identifiants["QUI_RESTE"].split():
         autres = _api(idp, f"realms/{REALM}/users?username={reste}&exact=true") or []
-        assert autres, f"Le compte « {reste} » est introuvable."
+        assert autres, message(
+            en=f"The account \"{reste}\" cannot be found.",
+            fr=f"Le compte « {reste} » est introuvable.",
+        )
         ses_groupes = _api(
             idp, f"realms/{REALM}/users/{autres[0]['id']}/groups"
         ) or []
-        assert ses_groupes, (
-            f"Le compte « {reste} », qui ne part pas, a perdu ses groupes. Un "
-            "départ ne retire les droits que d'une personne."
+        assert ses_groupes, message(
+            en=f"The account \"{reste}\", which is not leaving, lost its groups. A "
+            "departure removes the rights of one person only.",
+            fr=f"Le compte « {reste} », qui ne part pas, a perdu ses groupes. Un "
+            "départ ne retire les droits que d'une personne.",
         )
 
 
@@ -302,16 +353,22 @@ def test_le_fichier_de_revue_est_complet_et_a_jour(idp):
     qui_part = identifiants["QUI_PART"]
 
     fichier = idp.file(chemin)
-    assert fichier.exists, (
-        f"{chemin} est absent. La revue fait partie du travail : sans trace "
+    assert fichier.exists, message(
+        en=f"{chemin} is missing. The review is part of the work: with no written "
+        "trace, nobody can say who had access to what on the day of the "
+        "departure.",
+        fr=f"{chemin} est absent. La revue fait partie du travail : sans trace "
         "écrite, personne ne peut dire qui avait accès à quoi le jour du "
-        "départ."
+        "départ.",
     )
 
     try:
         revue = json.loads(fichier.content_string)
     except json.JSONDecodeError as erreur:
-        pytest.fail(f"{chemin} n'est pas du JSON lisible : {erreur}")
+        pytest.fail(message(
+            en=f"{chemin} is not readable JSON: {erreur}",
+            fr=f"{chemin} n'est pas du JSON lisible : {erreur}",
+        ))
 
     # La forme est libre à une condition : qu'on puisse retrouver chaque compte
     # avec ses groupes et ses rôles. On accepte une liste ou un dictionnaire.
@@ -319,43 +376,60 @@ def test_le_fichier_de_revue_est_complet_et_a_jour(idp):
         entrees = revue["comptes"]
     else:
         entrees = revue
-    assert isinstance(entrees, list), (
-        f"{chemin} doit porter une LISTE de comptes, ou un objet avec une clef "
-        f"« comptes » qui en contient une. Lu : {type(entrees).__name__}"
+    assert isinstance(entrees, list), message(
+        en=f"{chemin} must carry a LIST of accounts, or an object with a "
+        f"\"comptes\" key containing one. Read: {type(entrees).__name__}",
+        fr=f"{chemin} doit porter une LISTE de comptes, ou un objet avec une clef "
+        f"« comptes » qui en contient une. Lu : {type(entrees).__name__}",
     )
-    assert entrees, f"{chemin} ne liste aucun compte."
+    assert entrees, message(
+        en=f"{chemin} lists no account.",
+        fr=f"{chemin} ne liste aucun compte.",
+    )
 
     par_nom = {}
     for entree in entrees:
-        assert isinstance(entree, dict), (
-            f"Chaque entrée de {chemin} doit être un objet. Lu : {entree!r}"
+        assert isinstance(entree, dict), message(
+            en=f"Every entry of {chemin} must be an object. Read: {entree!r}",
+            fr=f"Chaque entrée de {chemin} doit être un objet. Lu : {entree!r}",
         )
         nom = entree.get("username") or entree.get("compte") or entree.get("nom")
-        assert nom, (
-            f"Une entrée de {chemin} ne nomme pas son compte : "
+        assert nom, message(
+            en=f"An entry of {chemin} does not name its account: "
+            f"{json.dumps(entree, ensure_ascii=False)[:200]}. A `username`, "
+            "`compte` or `nom` key was expected.",
+            fr=f"Une entrée de {chemin} ne nomme pas son compte : "
             f"{json.dumps(entree, ensure_ascii=False)[:200]}. Attendu une clef "
-            "`username`, `compte` ou `nom`."
+            "`username`, `compte` ou `nom`.",
         )
         par_nom[nom] = entree
 
     attendus = set(identifiants["QUI_RESTE"].split()) | {qui_part}
     manquants = sorted(attendus - set(par_nom))
-    assert not manquants, (
-        f"{chemin} ne liste pas {manquants}. Une revue incomplète ne prouve "
-        f"rien. Comptes listés : {sorted(par_nom)}"
+    assert not manquants, message(
+        en=f"{chemin} does not list {manquants}. An incomplete review proves "
+        f"nothing. Accounts listed: {sorted(par_nom)}",
+        fr=f"{chemin} ne liste pas {manquants}. Une revue incomplète ne prouve "
+        f"rien. Comptes listés : {sorted(par_nom)}",
     )
 
     for nom, entree in par_nom.items():
         clefs = set(entree)
-        assert clefs & {"groupes", "groups"}, (
-            f"L'entrée de « {nom} » ne porte pas de liste de groupes "
-            f"(clefs : {sorted(clefs)})."
+        assert clefs & {"groupes", "groups"}, message(
+            en=f"The entry of \"{nom}\" carries no list of groups "
+            f"(keys: {sorted(clefs)}).",
+            fr=f"L'entrée de « {nom} » ne porte pas de liste de groupes "
+            f"(clefs : {sorted(clefs)}).",
         )
-        assert clefs & {"roles", "rôles", "realmRoles"}, (
-            f"L'entrée de « {nom} » ne porte pas de liste de rôles "
+        assert clefs & {"roles", "rôles", "realmRoles"}, message(
+            en=f"The entry of \"{nom}\" carries no list of roles "
+            f"(keys: {sorted(clefs)}). A review by groups alone misses the "
+            "roles granted directly, which are the ones nobody "
+            "watches.",
+            fr=f"L'entrée de « {nom} » ne porte pas de liste de rôles "
             f"(clefs : {sorted(clefs)}). Une revue par groupes seuls manque "
             "les rôles accordés directement, qui sont ceux que personne ne "
-            "surveille."
+            "surveille.",
         )
 
     # La revue doit refléter l'ÉTAT APRÈS LE DÉPART : la personne y figure,
@@ -367,14 +441,19 @@ def test_le_fichier_de_revue_est_complet_et_a_jour(idp):
         or partante.get("realmRoles") or []
     )
     role_direct = identifiants["ROLE_DIRECT"]
-    assert not groupes, (
-        f"La revue montre « {qui_part} » encore dans {groupes}. Elle a été "
+    assert not groupes, message(
+        en=f"The review shows \"{qui_part}\" still in {groupes}. It was written "
+        "BEFORE the groups were removed: a review describing a bygone state "
+        "is worse than no review.",
+        fr=f"La revue montre « {qui_part} » encore dans {groupes}. Elle a été "
         "écrite AVANT le retrait des groupes : une revue qui décrit un état "
-        "révolu est pire qu'aucune revue."
+        "révolu est pire qu'aucune revue.",
     )
-    assert role_direct not in roles, (
-        f"La revue montre « {qui_part} » avec le rôle « {role_direct} ». "
-        "Elle a été écrite avant le retrait."
+    assert role_direct not in roles, message(
+        en=f"The review shows \"{qui_part}\" with the role \"{role_direct}\". "
+        "It was written before the removal.",
+        fr=f"La revue montre « {qui_part} » avec le rôle « {role_direct} ». "
+        "Elle a été écrite avant le retrait.",
     )
 
 
@@ -398,11 +477,16 @@ def test_la_personne_ne_peut_plus_ouvrir_de_session(idp):
     try:
         reponse = json.loads(res.stdout or "{}")
     except json.JSONDecodeError:
-        pytest.fail(f"Réponse illisible du point de jeton : {res.stdout[:300]}")
+        pytest.fail(message(
+            en=f"Unreadable answer from the token endpoint: {res.stdout[:300]}",
+            fr=f"Réponse illisible du point de jeton : {res.stdout[:300]}",
+        ))
 
-    assert not reponse.get("access_token"), (
-        "La personne qui part obtient encore un jeton avec son mot de passe. "
-        "Rien n'est coupé."
+    assert not reponse.get("access_token"), message(
+        en="The person leaving still obtains a token with their password. "
+        "Nothing is cut.",
+        fr="La personne qui part obtient encore un jeton avec son mot de passe. "
+        "Rien n'est coupé.",
     )
 
     # Et quelqu'un qui reste doit toujours pouvoir entrer : couper trop large
@@ -416,13 +500,17 @@ def test_la_personne_ne_peut_plus_ouvrir_de_session(idp):
         f"-d password={identifiants['MOT_DE_PASSE']!r}"
     )
     reponse = json.loads(res.stdout or "{}")
-    assert reponse.get("access_token"), (
-        f"Le compte « {reste} », qui ne part pas, ne peut plus se connecter "
+    assert reponse.get("access_token"), message(
+        en=f"The account \"{reste}\", which is not leaving, can no longer log in "
+        f"({reponse.get('error')}: {reponse.get('error_description')}). A "
+        "departure cuts the accesses of one person only.",
+        fr=f"Le compte « {reste} », qui ne part pas, ne peut plus se connecter "
         f"({reponse.get('error')} : {reponse.get('error_description')}). Un "
-        "départ ne coupe les accès que d'une personne."
+        "départ ne coupe les accès que d'une personne.",
     )
     # Le jeton obtenu est bien frais : sans cette vérification, un jeton mis en
     # cache pourrait faire passer le test.
-    assert _revendications(reponse["access_token"])["iat"] >= int(time.time()) - 120, (
-        "Le jeton obtenu n'est pas récent, ce qui est inattendu."
+    assert _revendications(reponse["access_token"])["iat"] >= int(time.time()) - 120, message(
+        en="The token obtained is not a recent one, which is unexpected.",
+        fr="Le jeton obtenu n'est pas récent, ce qui est inattendu.",
     )

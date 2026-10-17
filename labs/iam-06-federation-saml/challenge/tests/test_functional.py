@@ -28,7 +28,7 @@ import urllib.parse
 
 import pytest
 
-from conftest import lab_host, lab_target_host
+from conftest import lab_host, lab_target_host, message
 
 # L'hôte RÉELLEMENT testé. `dsoxlab check --target` peut en imposer un autre,
 # et coder le nom en dur ferait tester la cible par défaut en prétendant tester
@@ -60,10 +60,13 @@ def idp():
 
 def _identifiants(hote) -> dict[str, str]:
     fichier = hote.file(IDENTIFIANTS)
-    assert fichier.exists, (
-        f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
+    assert fichier.exists, message(
+        en=f"{IDENTIFIANTS} is missing. The lab's setup did not run, or its "
+        "staging script failed: the trace is in "
+        "/var/log/dsoxlab-prepare.log on the machine.",
+        fr=f"{IDENTIFIANTS} est absent. Le setup du lab n'a pas tourné, ou son "
         "script de mise en situation a échoué : la trace est dans "
-        "/var/log/dsoxlab-prepare.log sur la machine."
+        "/var/log/dsoxlab-prepare.log sur la machine.",
     )
     valeurs = {}
     for ligne in fichier.content_string.splitlines():
@@ -87,9 +90,11 @@ def _jeton_admin(hote) -> str:
         '-d "username=$u" -d "password=$p" | jq -r \'.access_token // empty\''
     )
     jeton = res.stdout.strip()
-    assert jeton, (
-        "Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
-        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})"
+    assert jeton, message(
+        en="No administration token could be obtained. Is Keycloak answering "
+        f"on {KEYCLOAK}, and is the base installed? (rc={res.rc})",
+        fr="Aucun jeton d'administration n'a pu être obtenu. Keycloak répond-il "
+        f"sur {KEYCLOAK}, et le socle est-il installé ? (rc={res.rc})",
     )
     return jeton
 
@@ -106,8 +111,12 @@ def _api(hote, chemin: str) -> object:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
-            f"{res.stdout[:300]}"
+            message(
+            en=f"The administration API returned no JSON for {chemin}: "
+            f"{res.stdout[:300]}",
+            fr=f"L'API d'administration n'a pas rendu de JSON pour {chemin} : "
+            f"{res.stdout[:300]}",
+        )
         )
 
 
@@ -122,10 +131,13 @@ def _client_saml(hote) -> dict:
         hote,
         f"realms/{EMETTEUR}/clients?clientId={urllib.parse.quote(entite, safe='')}",
     ) or []
-    assert trouves, (
-        f"Aucun client d'identifiant « {entite} » dans le realm "
+    assert trouves, message(
+        en=f"No client with identifier \"{entite}\" in the realm "
+        f"\"{EMETTEUR}\". The service provider announces itself under that "
+        "entity identifier, and that is what the client must carry.",
+        fr=f"Aucun client d'identifiant « {entite} » dans le realm "
         f"« {EMETTEUR} ». Le fournisseur de service s'annonce sous cet "
-        "identifiant d'entité, et c'est lui que le client doit porter."
+        "identifiant d'entité, et c'est lui que le client doit porter.",
     )
     return trouves[0]
 
@@ -149,18 +161,26 @@ def _config(objet: dict, clef: str) -> str:
 def _fournisseur_d_identite(hote) -> dict:
     trouves = _api(hote, f"realms/{CONSOMMATEUR}/identity-provider/instances") or []
     saml = [i for i in trouves if i.get("providerId") == "saml"]
-    assert saml, (
-        f"Aucun fournisseur d'identité SAML dans le realm « {CONSOMMATEUR} ». "
+    assert saml, message(
+        en=f"No SAML identity provider in the realm \"{CONSOMMATEUR}\". "
+        "That is the consuming half of the work: without it, the service "
+        "provider does not know whom to ask for an assertion. Providers "
+        f"found: {[i.get('providerId') for i in trouves]}",
+        fr=f"Aucun fournisseur d'identité SAML dans le realm « {CONSOMMATEUR} ». "
         "C'est la moitié consommatrice du travail : sans lui, le fournisseur de "
         "service ne sait pas à qui demander une assertion. Fournisseurs "
-        f"trouvés : {[i.get('providerId') for i in trouves]}"
+        f"trouvés : {[i.get('providerId') for i in trouves]}",
     )
     identite = saml[0]
-    assert identite.get("alias") == ALIAS, (
-        f"Le fournisseur d'identité s'appelle « {identite.get('alias')} » au "
+    assert identite.get("alias") == ALIAS, message(
+        en=f"The identity provider is named \"{identite.get('alias')}\" instead "
+        f"of \"{ALIAS}\". Its alias decides the URL of its reception "
+        "endpoint, which the issuer's SAML client must declare, and "
+        "the witness application names it in its configuration.",
+        fr=f"Le fournisseur d'identité s'appelle « {identite.get('alias')} » au "
         f"lieu de « {ALIAS} ». Son alias décide de l'URL de son point de "
         "réception, que le client SAML de l'émetteur doit déclarer, et "
-        "l'application témoin le nomme dans sa configuration."
+        "l'application témoin le nomme dans sa configuration.",
     )
     return identite
 
@@ -175,16 +195,22 @@ def _parcours(hote) -> dict:
         f"--mot-de-passe {identifiants['MOT_DE_PASSE']!r} "
         f"--attendre-texte {attendu!r} --tours 25"
     )
-    assert res.rc != 2, (
-        "L'outil de parcours n'a pas pu mesurer, ce qui n'est pas un échec de "
-        f"l'intégration : {res.stderr.strip()[:400]}"
+    assert res.rc != 2, message(
+        en="The journey tool could not measure, which is not a failure of "
+        f"the integration: {res.stderr.strip()[:400]}",
+        fr="L'outil de parcours n'a pas pu mesurer, ce qui n'est pas un échec de "
+        f"l'intégration : {res.stderr.strip()[:400]}",
     )
     try:
         return json.loads(res.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"Le parcours n'a rien rendu d'exploitable (rc={res.rc}) : "
-            f"{(res.stdout + res.stderr)[:400]}"
+            message(
+            en=f"The journey returned nothing usable (rc={res.rc}): "
+            f"{(res.stdout + res.stderr)[:400]}",
+            fr=f"Le parcours n'a rien rendu d'exploitable (rc={res.rc}) : "
+            f"{(res.stdout + res.stderr)[:400]}",
+        )
         )
 
 
@@ -211,21 +237,27 @@ def test_le_client_saml_existe_avec_l_identifiant_d_entite_attendu(idp):
     """
     client = _client_saml(idp)
 
-    assert client.get("protocol") == "saml", (
-        f"Le client existe mais parle « {client.get('protocol')} ». Un "
-        "fournisseur de service SAML ne consomme pas un jeton OIDC."
+    assert client.get("protocol") == "saml", message(
+        en=f"The client exists but speaks \"{client.get('protocol')}\". A "
+        "SAML service provider does not consume an OIDC token.",
+        fr=f"Le client existe mais parle « {client.get('protocol')} ». Un "
+        "fournisseur de service SAML ne consomme pas un jeton OIDC.",
     )
-    assert client.get("enabled") is True, (
-        "Le client SAML est désactivé : aucune assertion n'en sortira."
+    assert client.get("enabled") is True, message(
+        en="The SAML client is disabled: no assertion will come out of it.",
+        fr="Le client SAML est désactivé : aucune assertion n'en sortira.",
     )
 
     identifiants = _identifiants(idp)
     attendu = identifiants["ACS_CONSOMMATEUR"]
     uris = client.get("redirectUris") or []
-    assert any(attendu in u for u in uris), (
-        f"Le client ne déclare pas « {attendu} » comme adresse de retour "
+    assert any(attendu in u for u in uris), message(
+        en=f"The client does not declare \"{attendu}\" as its return address "
+        f"(declared: {uris}). That is where the service provider expects "
+        "the assertion, and an inexact address sends it elsewhere.",
+        fr=f"Le client ne déclare pas « {attendu} » comme adresse de retour "
         f"(déclaré : {uris}). C'est là que le fournisseur de service attend "
-        "l'assertion, et une adresse inexacte la fait partir ailleurs."
+        "l'assertion, et une adresse inexacte la fait partir ailleurs.",
     )
 
 
@@ -242,17 +274,23 @@ def test_les_assertions_sont_signees(idp):
     client = _client_saml(idp)
 
     signee = _attribut(client, "saml.assertion.signature")
-    assert str(signee).lower() == "true", (
-        "Les assertions ne sont pas signées "
+    assert str(signee).lower() == "true", message(
+        en="The assertions are not signed "
+        f"(saml.assertion.signature = {signee!r}). The service provider "
+        "would then accept a document fabricated by anyone who knows its "
+        "return address.",
+        fr="Les assertions ne sont pas signées "
         f"(saml.assertion.signature = {signee!r}). Le fournisseur de service "
         "accepterait alors un document fabriqué par quiconque connaît son "
-        "adresse de retour."
+        "adresse de retour.",
     )
 
     algo = _attribut(client, "saml.signature.algorithm")
-    assert algo and "SHA1" not in algo.upper(), (
-        f"L'algorithme de signature est « {algo or 'non déclaré'} ». SHA-1 est "
-        "cassé depuis 2017 et ne doit plus signer d'assertion."
+    assert algo and "SHA1" not in algo.upper(), message(
+        en=f"The signature algorithm is \"{algo or 'undeclared'}\". SHA-1 has been "
+        "broken since 2017 and must no longer sign an assertion.",
+        fr=f"L'algorithme de signature est « {algo or 'non déclaré'} ». SHA-1 est "
+        "cassé depuis 2017 et ne doit plus signer d'assertion.",
     )
 
 
@@ -273,10 +311,13 @@ def test_l_emetteur_envoie_le_courriel_et_les_groupes(idp):
     ) or []
 
     types = {m.get("protocolMapper") for m in mappeurs}
-    assert "saml-group-membership-mapper" in types, (
-        "Aucun mappeur d'appartenance aux groupes. L'assertion ne portera pas "
+    assert "saml-group-membership-mapper" in types, message(
+        en="No group membership mapper. The assertion will not carry "
+        f"the groups, and the consumer will not be able to file them. Mappers "
+        f"present: {sorted(types)}",
+        fr="Aucun mappeur d'appartenance aux groupes. L'assertion ne portera pas "
         f"les groupes, et le consommateur ne pourra pas les ranger. Mappeurs "
-        f"présents : {sorted(types)}"
+        f"présents : {sorted(types)}",
     )
 
     attributs = {
@@ -288,18 +329,28 @@ def test_l_emetteur_envoie_le_courriel_et_les_groupes(idp):
         (m.get("config") or {}).get("user.attribute")
         for m in mappeurs
     }
-    assert "email" in proprietes, (
-        "Aucun mappeur ne projette l'adresse de courriel du compte "
+    assert "email" in proprietes, message(
+        en="No mapper projects the account's mail address "
+        f"(properties projected: {sorted(p for p in proprietes if p)}). The "
+        "consumer will have to ask the user for it.",
+        fr="Aucun mappeur ne projette l'adresse de courriel du compte "
         f"(propriétés projetées : {sorted(p for p in proprietes if p)}). Le "
-        "consommateur devra la demander à l'utilisateur."
+        "consommateur devra la demander à l'utilisateur.",
     )
-    assert {"firstName", "lastName"} <= proprietes, (
-        "Le prénom et le nom ne sont pas tous les deux projetés "
+    assert {"firstName", "lastName"} <= proprietes, message(
+        en="The first name and the surname are not both projected "
+        f"(properties: {sorted(p for p in proprietes if p)}). Measured on "
+        "2026-10-16: without them, the consumer stops on \"Update Account "
+        "Information\" and the login never completes.",
+        fr="Le prénom et le nom ne sont pas tous les deux projetés "
         f"(propriétés : {sorted(p for p in proprietes if p)}). Mesuré le "
         "2026-10-16 : sans eux, le consommateur s'arrête sur « Update Account "
-        "Information » et la connexion n'aboutit jamais."
+        "Information » et la connexion n'aboutit jamais.",
     )
-    assert attributs, "Les mappeurs d'attribut ne nomment aucun attribut."
+    assert attributs, message(
+        en="The attribute mappers name no attribute.",
+        fr="Les mappeurs d'attribut ne nomment aucun attribut.",
+    )
 
 
 def test_le_consommateur_valide_la_signature_de_l_emetteur(idp):
@@ -312,33 +363,46 @@ def test_le_consommateur_valide_la_signature_de_l_emetteur(idp):
     """
     identite = _fournisseur_d_identite(idp)
 
-    assert identite.get("enabled") is True, (
-        "Le fournisseur d'identité est déclaré mais désactivé."
+    assert identite.get("enabled") is True, message(
+        en="The identity provider is declared but disabled.",
+        fr="Le fournisseur d'identité est déclaré mais désactivé.",
     )
-    assert _config(identite, "wantAssertionsSigned") == "true", (
-        "Le consommateur n'exige pas que les assertions soient signées "
-        f"(wantAssertionsSigned = {_config(identite, 'wantAssertionsSigned')!r})."
+    assert _config(identite, "wantAssertionsSigned") == "true", message(
+        en="The consumer does not require the assertions to be signed "
+        f"(wantAssertionsSigned = {_config(identite, 'wantAssertionsSigned')!r}).",
+        fr="Le consommateur n'exige pas que les assertions soient signées "
+        f"(wantAssertionsSigned = {_config(identite, 'wantAssertionsSigned')!r}).",
     )
-    assert _config(identite, "validateSignature") == "true", (
-        "Le consommateur ne vérifie pas la signature "
+    assert _config(identite, "validateSignature") == "true", message(
+        en="The consumer does not verify the signature "
         f"(validateSignature = {_config(identite, 'validateSignature')!r}). "
-        "Exiger un sceau sans le regarder ne protège de rien."
+        "Requiring a seal without looking at it protects nothing.",
+        fr="Le consommateur ne vérifie pas la signature "
+        f"(validateSignature = {_config(identite, 'validateSignature')!r}). "
+        "Exiger un sceau sans le regarder ne protège de rien.",
     )
 
     certificat = _config(identite, "signingCertificate")
-    assert certificat and len(certificat) > 200, (
-        "Aucun certificat de signature n'est déclaré côté consommateur, ou il "
+    assert certificat and len(certificat) > 200, message(
+        en="No signing certificate is declared on the consumer's side, or it "
+        f"is too short to be one ({len(certificat)} characters). It is "
+        "read in the issuer's metadata, published at the address "
+        "given in identifiants-lab.txt.",
+        fr="Aucun certificat de signature n'est déclaré côté consommateur, ou il "
         f"est trop court pour en être un ({len(certificat)} caractères). Il se "
         "lit dans les métadonnées de l'émetteur, qui sont publiées à l'adresse "
-        "donnée dans identifiants-lab.txt."
+        "donnée dans identifiants-lab.txt.",
     )
 
     emetteur_attendu = f"{KEYCLOAK}/realms/{EMETTEUR}"
     lu = _config(identite, "idpEntityId")
-    assert lu == emetteur_attendu, (
-        f"Le consommateur attend des assertions de « {lu} » au lieu de "
+    assert lu == emetteur_attendu, message(
+        en=f"The consumer expects assertions from \"{lu}\" instead of "
+        f"\"{emetteur_attendu}\". It will refuse those coming from the right "
+        "issuer.",
+        fr=f"Le consommateur attend des assertions de « {lu} » au lieu de "
         f"« {emetteur_attendu} ». Il refusera celles qui viennent du bon "
-        "émetteur."
+        "émetteur.",
     )
 
 
@@ -354,27 +418,40 @@ def test_le_parcours_complet_connecte_l_utilisateur(idp):
     la façon dont SAML traverse un navigateur sans redirection HTTP.
     """
     etat = idp.run(f"curl -sS --max-time 10 http://127.0.0.1:{PORT_TEMOIN}/etat")
-    assert etat.rc == 0 and etat.stdout.strip(), (
-        f"L'application témoin ne répond pas sur le port {PORT_TEMOIN}. Le "
+    assert etat.rc == 0 and etat.stdout.strip(), message(
+        en=f"The witness application does not answer on port {PORT_TEMOIN}. The "
+        "setup starts it: if it is absent, its log is in "
+        "/opt/iam-lab/appli-temoin/temoin.log.",
+        fr=f"L'application témoin ne répond pas sur le port {PORT_TEMOIN}. Le "
         "setup la démarre : si elle est absente, son journal est dans "
-        "/opt/iam-lab/appli-temoin/temoin.log."
+        "/opt/iam-lab/appli-temoin/temoin.log.",
     )
 
     resultat = _parcours(idp)
 
-    assert resultat.get("connexion_posee") is True, (
-        "Le parcours n'a jamais rencontré de formulaire de connexion. "
+    assert resultat.get("connexion_posee") is True, message(
+        en="The journey never met a login form. "
+        "The application was therefore not taken as far as the issuer: it "
+        f"stopped on {resultat.get('arrivee')}.",
+        fr="Le parcours n'a jamais rencontré de formulaire de connexion. "
         "L'application n'a donc pas été emmenée jusqu'à l'émetteur : elle "
-        f"s'est arrêtée sur {resultat.get('arrivee')}."
+        f"s'est arrêtée sur {resultat.get('arrivee')}.",
     )
-    assert resultat.get("texte_trouve") is True, (
-        "La page d'arrivée n'affiche pas l'utilisateur connecté. Le parcours "
+    assert resultat.get("texte_trouve") is True, message(
+        en="The landing page does not show the logged-in user. The journey "
+        f"ended on {resultat.get('arrivee')} "
+        f"(HTTP {resultat.get('http')}) with: "
+        f"{str(resultat.get('texte'))[:300]}\n\n"
+        "If you read \"Update Account Information\", the assertion did not "
+        "carry everything the consumer requires to create an account without "
+        "asking: address, first name and surname.",
+        fr="La page d'arrivée n'affiche pas l'utilisateur connecté. Le parcours "
         f"s'est terminé sur {resultat.get('arrivee')} "
         f"(HTTP {resultat.get('http')}) avec : "
         f"{str(resultat.get('texte'))[:300]}\n\n"
         "Si vous lisez « Update Account Information », l'assertion n'a pas "
         "porté tout ce que le consommateur exige pour créer un compte sans "
-        "demander : adresse, prénom et nom."
+        "demander : adresse, prénom et nom.",
     )
 
 
@@ -385,21 +462,28 @@ def test_le_compte_arrive_avec_son_courriel_et_son_identite(idp):
     setup.
     """
     compte = _compte_du_consommateur(idp)
-    assert compte, (
-        f"Le realm « {CONSOMMATEUR} » n'a aucun compte « alice ». Le parcours "
-        "a-t-il abouti ? Voir le test précédent."
+    assert compte, message(
+        en=f"The realm \"{CONSOMMATEUR}\" has no \"alice\" account. Did the journey "
+        "complete? See the previous test.",
+        fr=f"Le realm « {CONSOMMATEUR} » n'a aucun compte « alice ». Le parcours "
+        "a-t-il abouti ? Voir le test précédent.",
     )
 
-    assert compte.get("email") == "aline@formation.lab", (
-        f"Le compte porte l'adresse {compte.get('email')!r} au lieu de "
+    assert compte.get("email") == "aline@formation.lab", message(
+        en=f"The account carries the address {compte.get('email')!r} instead of "
+        "'aline@formation.lab'. Did the assertion carry it, and does the "
+        "consumer have a mapper to read it?",
+        fr=f"Le compte porte l'adresse {compte.get('email')!r} au lieu de "
         "'aline@formation.lab'. L'assertion la portait-elle, et le "
-        "consommateur a-t-il un mappeur pour la lire ?"
+        "consommateur a-t-il un mappeur pour la lire ?",
     )
-    assert compte.get("firstName") == "Aline", (
-        f"Le prénom lu est {compte.get('firstName')!r} au lieu de 'Aline'."
+    assert compte.get("firstName") == "Aline", message(
+        en=f"The first name read is {compte.get('firstName')!r} instead of 'Aline'.",
+        fr=f"Le prénom lu est {compte.get('firstName')!r} au lieu de 'Aline'.",
     )
-    assert compte.get("lastName") == "Dupont", (
-        f"Le nom lu est {compte.get('lastName')!r} au lieu de 'Dupont'."
+    assert compte.get("lastName") == "Dupont", message(
+        en=f"The surname read is {compte.get('lastName')!r} instead of 'Dupont'.",
+        fr=f"Le nom lu est {compte.get('lastName')!r} au lieu de 'Dupont'.",
     )
 
     liens = _api(
@@ -407,10 +491,13 @@ def test_le_compte_arrive_avec_son_courriel_et_son_identite(idp):
         f"realms/{CONSOMMATEUR}/users/{compte['id']}/federated-identity",
     ) or []
     alias = {li.get("identityProvider") for li in liens}
-    assert ALIAS in alias, (
-        f"Le compte n'est pas lié au fournisseur d'identité « {ALIAS} » "
+    assert ALIAS in alias, message(
+        en=f"The account is not linked to the identity provider \"{ALIAS}\" "
+        f"(links: {sorted(a for a in alias if a)}). It was created by hand, "
+        "and it will not follow the issuer.",
+        fr=f"Le compte n'est pas lié au fournisseur d'identité « {ALIAS} » "
         f"(liens : {sorted(a for a in alias if a)}). Il a été créé à la main, "
-        "et il ne suivra pas l'émetteur."
+        "et il ne suivra pas l'émetteur.",
     )
 
 
@@ -425,8 +512,9 @@ def test_les_groupes_de_l_assertion_rangent_le_compte(idp):
     groupe doit préexister dans son realm, un mappeur ne le créant pas.
     """
     compte = _compte_du_consommateur(idp)
-    assert compte, (
-        f"Le realm « {CONSOMMATEUR} » n'a aucun compte « alice »."
+    assert compte, message(
+        en=f"The realm \"{CONSOMMATEUR}\" has no \"alice\" account.",
+        fr=f"Le realm « {CONSOMMATEUR} » n'a aucun compte « alice ».",
     )
 
     identifiants = _identifiants(idp)
@@ -436,12 +524,19 @@ def test_les_groupes_de_l_assertion_rangent_le_compte(idp):
     ) or []
     noms = {g["name"] for g in groupes}
 
-    assert attendu in noms, (
-        f"Le compte n'est pas dans le groupe « {attendu} » côté consommateur "
+    assert attendu in noms, message(
+        en=f"The account is not in the group \"{attendu}\" on the consumer's side "
+        f"(groups: {sorted(noms)}).\n\n"
+        "The assertion can carry the groups without the consumer filing "
+        "them: it needs a mapper that reads the attribute and names the "
+        "group. Mind `syncMode` too: on an ALREADY linked account, a "
+        "mapper set to `INHERIT` reapplies nothing, which looks exactly "
+        "like a mapper that does not work.",
+        fr=f"Le compte n'est pas dans le groupe « {attendu} » côté consommateur "
         f"(groupes : {sorted(noms)}).\n\n"
         "L'assertion peut porter les groupes sans que le consommateur les "
         "range : il lui faut un mappeur qui lit l'attribut et désigne le "
         "groupe. Attention aussi à `syncMode` : sur un compte DÉJÀ lié, un "
         "mappeur en `INHERIT` ne réapplique rien, ce qui ressemble trait pour "
-        "trait à un mappeur qui ne fonctionne pas."
+        "trait à un mappeur qui ne fonctionne pas.",
     )
