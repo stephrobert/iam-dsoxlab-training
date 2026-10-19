@@ -1,7 +1,7 @@
 # Instructions Claude Code : `kubernetes-dsoxlab-training`
 
 Catalogue de **micro-labs vérifiables** pour la formation Kubernetes du blog
-`blog.stephane-robert.info`. Il est joué par la CLI **dsoxlab**, qui vit
+`www.stephane-robert.info`. Il est joué par la CLI **dsoxlab**, qui vit
 ailleurs (`~/Projets/dsoxlab`) et dont ce dépôt n'est qu'un **fournisseur de
 contenu**.
 

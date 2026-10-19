@@ -20,7 +20,7 @@ skills:
   - federation
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/federation-ldap/
+doc_url: https://www.stephane-robert.info/docs/services/identite/keycloak/federation-ldap/
 certification_tags: []
 runtime:
   type: vm

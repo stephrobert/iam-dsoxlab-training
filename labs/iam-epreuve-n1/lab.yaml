@@ -28,7 +28,7 @@ skills:
   - api
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/epreuve-niveau-1/
+doc_url: https://www.stephane-robert.info/docs/services/identite/epreuve-niveau-1/
 certification_tags: []
 # Le pourcentage DU BARÈME à atteindre pour que l'épreuve soit réussie. Rendu
 # en verdict par `dsoxlab submit`. Fixé après avoir joué l'épreuve en entier.

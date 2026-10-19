@@ -22,7 +22,7 @@ skills:
   - exploitation
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/production/
+doc_url: https://www.stephane-robert.info/docs/services/identite/keycloak/production/
 certification_tags: []
 runtime:
   type: vm
