@@ -20,7 +20,7 @@ skills:
   - diagnostic
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/depanner-integration/
+doc_url: https://www.stephane-robert.info/docs/services/identite/keycloak/depanner-integration/
 certification_tags: []
 runtime:
   type: vm

@@ -17,7 +17,7 @@ repo:
   id: iam-dsoxlab-training
   category: iam
   title: "IAM Training: wire an application to an identity provider, then run it"
-  blog_url: "https://blog.stephane-robert.info/docs/services/identite/"
+  blog_url: "https://www.stephane-robert.info/docs/services/identite/"
   issues_url: "https://github.com/stephrobert/iam-dsoxlab-training/issues"
   description: |
     Labs for the identity and access management course. Level one wires real

@@ -2,7 +2,7 @@
 
 Ce dépôt est un **fournisseur de labs** pour la CLI `dsoxlab`. Il contient le
 catalogue Linux (84 labs) de la formation publiée sur
-[blog.stephane-robert.info](https://blog.stephane-robert.info). Il ne contient
+[www.stephane-robert.info](https://www.stephane-robert.info). Il ne contient
 **aucun** code de moteur : la CLI vit dans `~/Projets/dsoxlab/`.
 
 Ce fichier n'est **pas** versionné (il est listé dans `.git/info/exclude`).
@@ -168,7 +168,7 @@ title: "Manage swap space"                # REQUIS, anglais
 level: l2                                 # REQUIS
 skills: [storage, swap]                   # REQUIS, non vide
 distros: [alma10, ubuntu24]               # REQUIS, non vide
-doc_url: https://blog.stephane-robert.info/docs/...   # REQUIS, http(s)
+doc_url: https://www.stephane-robert.info/docs/...   # REQUIS, http(s)
 lab_type: lab                             # lab | challenge | capstone
 estimated_time: "25m"
 certification_tags: [rhcsa, lfcs]

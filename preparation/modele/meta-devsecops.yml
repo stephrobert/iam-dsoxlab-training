@@ -19,7 +19,7 @@ repo:
   id: devsecops-dsoxlab-training
   category: devsecops
   title: "DevSecOps Training: the common thread, from V0 to V11"
-  blog_url: "https://blog.stephane-robert.info/docs/devops/"
+  blog_url: "https://www.stephane-robert.info/docs/devops/"
   issues_url: "https://github.com/stephrobert/devsecops-dsoxlab-training/issues"
   description: |
     One project, notes-api, hardened version after version as the DevSecOps

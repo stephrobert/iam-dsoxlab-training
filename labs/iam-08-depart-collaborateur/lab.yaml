@@ -20,7 +20,7 @@ skills:
   - sessions
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/
+doc_url: https://www.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/
 certification_tags: []
 runtime:
   type: vm

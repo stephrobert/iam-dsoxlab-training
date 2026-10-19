@@ -28,7 +28,7 @@ skills:
   - sauvegarde
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/epreuve-niveau-2/
+doc_url: https://www.stephane-robert.info/docs/services/identite/epreuve-niveau-2/
 certification_tags: []
 # Le pourcentage DU BARÈME à atteindre. Rendu en verdict par `dsoxlab submit`.
 # Fixé après avoir joué l'épreuve en entier : seize contrôles, dont aucun n'est
