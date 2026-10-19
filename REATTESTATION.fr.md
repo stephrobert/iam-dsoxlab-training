@@ -24,6 +24,32 @@ qui n'en a pas.
 - **Une infrastructure provisionnée** : 16 lab(s) sont en `runtime: vm` sur le réseau `lab-iam`, et exigent `dsoxlab provision` avant la campagne, `dsoxlab destroy` après. Les hôtes attendus sont `idp.lab`.
 - De la mémoire libre réelle, et non celle qu'annonce `doctor` : détruire l'infra des autres dépôts AVANT de provisionner celle-ci, sinon les VM se disputent la RAM et les labs échouent par épuisement, ce qui ressemble à un défaut de lab.
 
+### Deux faits à connaître, écrits dans le CLAUDE.md de ce dépôt
+
+**Le socle n'est pas posé par le provisionnement.** `CLAUDE.md` est explicite :
+
+> **Pas de point d'accroche après le provisionnement** : le socle
+> (`shared/socle-iam.yml`) est inclus par chaque `setup.yaml`, sauf celui de
+> `iam-02-keycloak-installer`, dont le sujet est d'écrire ce montage.
+
+Et l'ordre compte, ce qui est rare :
+
+> Les deux épreuves n'incluent pas le socle et **retirent** celui qu'un autre
+> lab a laissé (volumes compris), parce qu'il occupe leurs ports.
+
+**L'isolation par base figée est une question ouverte, pas un oubli.** Le même
+fichier note :
+
+> `scripts/isolation_vm.py` cite aussi `scripts/rebase-vms.sh`, absent du
+> dépôt (à vérifier : l'isolation par overlay qcow2 est-elle utilisable ici ?).
+
+C'est pourquoi une campagne a rendu **16 ROUGE** le 2026-10-19, tous sur
+« isolation impossible : idp.lab n'a pas de base figée ». Copier le script
+d'un catalogue frère règle le symptôme sans répondre à la question : ce
+catalogue a un socle que ses épreuves démontent, et `iam-14` monte un k3d dans
+la VM. **Trancher cette question est un préalable à toute campagne ici**, et
+ce n'est pas à une copie de le faire.
+
 ## La commande
 
 ```bash

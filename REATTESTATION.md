@@ -23,6 +23,32 @@ that has none.
 - **Provisioned infrastructure**: 16 lab(s) are `runtime: vm` on the `lab-iam` network and require `dsoxlab provision` before the campaign and `dsoxlab destroy` after. Expected hosts: `idp.lab`.
 - Real free memory, not what `doctor` reports: destroy the other repositories' infrastructure BEFORE provisioning this one, or the VMs compete for RAM and labs fail by exhaustion, which looks like a lab defect.
 
+### Two facts to know, written in this repository's CLAUDE.md
+
+**The base is not laid down by provisioning.** `CLAUDE.md` is explicit:
+
+> **No hook after provisioning**: the base (`shared/socle-iam.yml`) is
+> included by every `setup.yaml`, except the one in
+> `iam-02-keycloak-installer`, whose subject is writing that setup.
+
+And the order matters, which is rare:
+
+> The two exams do not include the base and **remove** the one another lab
+> left behind (volumes included), because it occupies their ports.
+
+**Isolation by frozen base is an open question, not an oversight.** The same
+file notes:
+
+> `scripts/isolation_vm.py` also references `scripts/rebase-vms.sh`, absent
+> from the repository (to check: is qcow2 overlay isolation usable here?).
+
+That is why a campaign returned **16 REDs** on 2026-10-19, all on "isolation
+impossible: idp.lab has no frozen base". Copying a sibling catalogue's script
+treats the symptom without answering the question: this catalogue has a base
+its exams dismantle, and `iam-14` brings up a k3d inside the VM. **Settling
+that question is a prerequisite to any campaign here**, and a file copy is not
+what settles it.
+
 ## The command
 
 ```bash
