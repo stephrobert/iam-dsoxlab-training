@@ -237,11 +237,17 @@ jobs:
       # borne, uv répond « aucune version ne satisfait la contrainte », ce qui
       # nomme le bon coupable.
       #
-      # 0.4.1 et pas plus haut : c'est la version qui a introduit le champ
-      # `status` de `check --json`, sans lequel `scripts/verdict_check.py`
-      # refuse de conclure. Ce catalogue n'exige rien de plus récent.
+      # 0.5.0 est le plancher COMMUN aux douze catalogues, et c'est une
+      # décision du 2026-10-17. Le minimum réel de ce dépôt est plus bas :
+      # 0.4.1, la version qui a introduit le champ `status` de
+      # `check --json`, sans lequel `scripts/verdict_check.py` refuse de
+      # conclure. Mais un plancher par dépôt laisse deux catalogues être
+      # validés par deux moteurs différents, donc par deux jeux de contrôles
+      # différents : le vert de l'un ne veut alors plus dire ce que dit le
+      # vert de l'autre. Les douze passent `validate-structure` avec
+      # `dsoxlab==0.5.0`, mesuré avant d'écrire cette borne.
       - name: Vérifier la structure et les leçons jumelées
-        run: uvx 'dsoxlab>=0.4.1' validate-structure --check-urls
+        run: uvx 'dsoxlab>=0.5.0' validate-structure --check-urls
 
       # Un verrou qui dérive de son pyproject ne verrouille plus rien : les
       # scanners de vulnérabilités continuent de lire uv.lock, qui ne décrit
