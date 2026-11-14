@@ -142,7 +142,7 @@ les noms de répertoires sont **toujours en anglais**.
 ```text
 labs/linux/<section>/<lab>/
 ├── lab.yaml              ← métadonnées canoniques (EN). REQUIS
-├── lab.fr.yaml           ← surcharges FR : title + description uniquement
+├── lab.fr.yaml           ← surcharges FR : title, description et libellés de critères uniquement
 ├── README.md             ← tutoriel guidé EN. REQUIS
 ├── README.fr.md          ← tutoriel guidé FR
 ├── scenario.md           ← contexte narratif EN. REQUIS
