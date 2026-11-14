@@ -10,6 +10,19 @@ CORRECTIF corrige un énoncé ou un test sans changer ce qu'un lab prouve, et un
 incrément MAJEUR renomme ou retire des labs, ce qui casse la progression déjà
 enregistrée des apprenants.
 
+## [Non publié]
+
+### Modifié
+
+- Le README ne recopie plus la documentation du moteur dsoxlab (contrat, cycle
+  de vie d'un lab) : il renvoie aux pages où le moteur se documente lui-même
+  (dsoxlab#201). Le CONTRIBUTING ne conseille plus de jouer `list-labs` avant
+  `validate-structure` : depuis dsoxlab 0.1.97, `validate-structure` signale
+  un `lab.yaml` qui lève et un lab déclaré mais absent, et échoue sur eux. Le
+  modèle archivé `preparation/modele/CLAUDE-catalogue-linux.md` reçoit la même
+  correction, plus `infra status` pour la joignabilité des hôtes, le chemin des
+  fixtures préservé sous le workdir, et le compte de labs à jour.
+
 ## [0.2.2] - 2026-10-23
 
 ### Ajouté

@@ -1,7 +1,7 @@
 # Instructions Claude Code : `linux-dsoxlab-training`
 
 Ce dépôt est un **fournisseur de labs** pour la CLI `dsoxlab`. Il contient le
-catalogue Linux (84 labs) de la formation publiée sur
+catalogue Linux (89 labs, compte du 2026-11-14) de la formation publiée sur
 [www.stephane-robert.info](https://www.stephane-robert.info). Il ne contient
 **aucun** code de moteur : la CLI vit dans `~/Projets/dsoxlab/`.
 
@@ -69,7 +69,8 @@ Le validator de `dsoxlab` **refuse** un lab qui contient l'un de ces fichiers :
 
 Il n'y a **plus aucun `make`** dans ce dépôt. `make bootstrap`, `make provision`,
 `make verify-conn`, `make restore` n'existent pas : ce sont `dsoxlab provision`,
-`dsoxlab status`, `dsoxlab reset`.
+`dsoxlab infra status`, `dsoxlab reset`. (`dsoxlab status`, lui, donne
+l'état du lab actif, pas la joignabilité des machines.)
 
 ### 4. La validation prouve l'état, elle ne fait pas confiance
 
@@ -184,7 +185,7 @@ runtime:
   snapshot_required: false
   # --- si type: shell ---
   workdir: challenge/work                 # REQUIS pour shell
-  fixtures: [acces.log]                   # copiés à plat dans le workdir
+  fixtures: [acces.log]                   # chemin préservé sous le workdir (0.1.37)
 validation:                               # DÉCLARATIF : dsoxlab ne s'en sert
   functional: true                        # jamais pour décider. Ce sont les
   security: false                         # tests qui prouvent.
@@ -204,12 +205,14 @@ position du lab dans `meta.yml: sections[].labs[]`. C'est de là que
 1. **Un `lab.yaml` invalide disparaît en silence.** Une erreur de parsing donne
    un `logger.warning` que rien n'affiche, puis le lab est ignoré. Un lab absent
    de `dsoxlab list-labs` est presque toujours un `lab.yaml` qui lève.
-   **D'où la règle : `dsoxlab list-labs` d'abord, `validate-structure` ensuite.**
+   Depuis dsoxlab 0.1.97, `validate-structure` relit le disque, signale ce
+   `lab.yaml` (`lab_yaml_illisible`) et échoue : il suffit à lui seul.
 2. **La découverte se fait par chemin, jamais par `id`.** Un lab existe si et
    seulement si `labs/**/lab.yaml` existe. Le `meta.yml` ne fait qu'ordonner et
    nommer les blocs.
-3. **`validate-structure` ne vérifie pas qu'un lab listé dans `meta.yml` existe
-   sur le disque.** Il itère sur ce qui a été chargé avec succès.
+3. **Un lab listé dans `meta.yml` mais absent du disque** est signalé par
+   `validate-structure` depuis dsoxlab 0.1.97 (`lab_declare_absent`), qui
+   échoue.
 4. **Un host de `targets[]` absent de `meta.yml: infra.hosts[]`** ne se voit
    qu'au run, sur la machine de l'apprenant. `validate-structure` le rattrape
    désormais, mais seulement si le `meta.yml` est lisible.
@@ -426,7 +429,7 @@ DSOXLAB_PROVIDER=kvm ...       # ou en one-shot, utile en shell non interactif
 
 Un shell non interactif n'hérite pas de l'export du shell de travail : c'est la
 raison pour laquelle « ça passait hier » et pas dans la session suivante.
-Contrôle : `dsoxlab doctor` doit annoncer les **84 labs** détectés et un
+Contrôle : `dsoxlab doctor` doit annoncer les **89 labs** détectés et un
 provider actif.
 
 **3. Partir de VM fraîches.** Les labs partagent `alma-rhcsa-1.lab`, et il n'y a

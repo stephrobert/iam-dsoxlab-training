@@ -9,6 +9,19 @@ labs or changes what the repository promises, a PATCH fixes a statement or a
 test without changing what a lab proves, and a MAJOR renames or removes labs,
 which breaks the progress already recorded by learners.
 
+## [Unreleased]
+
+### Changed
+
+- The README no longer copies the dsoxlab engine documentation (contract,
+  lab life cycle): it links to the pages where the engine documents itself
+  (dsoxlab#201). CONTRIBUTING no longer advises running `list-labs` before
+  `validate-structure`: since dsoxlab 0.1.97, `validate-structure` reports a
+  `lab.yaml` that raises and a lab declared but missing, and fails on them.
+  The archived model `preparation/modele/CLAUDE-catalogue-linux.md` gets the
+  same fix, plus `infra status` for host reachability, fixture paths
+  preserved under the workdir, and the current lab count.
+
 ## [0.2.2] - 2026-10-23
 
 ### Added
