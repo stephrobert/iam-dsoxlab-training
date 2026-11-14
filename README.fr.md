@@ -5,7 +5,7 @@
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](./LICENSE)
 
 Les labs vérifiables de la
-[formation gestion des identités et des accès](https://blog.stephane-robert.info/docs/services/identite/)
+[formation gestion des identités et des accès](https://www.stephane-robert.info/docs/services/identite/)
 du blog, joués avec [dsoxlab](https://github.com/stephrobert/dsoxlab).
 
 ## Ce que c'est
@@ -234,15 +234,15 @@ intégration cassée. Se termine par l'épreuve de niveau.
 
 | Lab (id) | Titre | Type | Guide compagnon |
 |---|---|---|---|
-| `iam-02-keycloak-installer` | Installer Keycloak avec sa base de données | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/installation/) |
-| `iam-04-client-oidc-pkce` | Connecter une application en OIDC avec PKCE | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/securiser-application-oidc/) |
-| `iam-05-api-protegee` | Protéger une API par jetons d'accès | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/proteger-une-api/) |
-| `iam-01-annuaire-lldap` | Organiser des comptes et des groupes dans un annuaire | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/lldap/) |
-| `iam-03-federation-ldap` | Fédérer un annuaire dans le fournisseur | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/federation-ldap/) |
-| `iam-06-federation-saml` | Fédérer une application en SAML | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/fondamentaux/saml/) |
-| `iam-11-federation-externe` | Déléguer la connexion à un fournisseur externe | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/federation-entrante/) |
-| `iam-12-depanner-integration` | Réparer une intégration qui ne marche plus | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/depanner-integration/) |
-| `iam-epreuve-n1` | Épreuve de niveau 1 : monter un fournisseur, fédérer, brancher une application et une API | capstone | [guide](https://blog.stephane-robert.info/docs/services/identite/epreuve-niveau-1/) |
+| `iam-02-keycloak-installer` | Installer Keycloak avec sa base de données | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/installation/) |
+| `iam-04-client-oidc-pkce` | Connecter une application en OIDC avec PKCE | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/securiser-application-oidc/) |
+| `iam-05-api-protegee` | Protéger une API par jetons d'accès | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/proteger-une-api/) |
+| `iam-01-annuaire-lldap` | Organiser des comptes et des groupes dans un annuaire | lab | [guide](https://www.stephane-robert.info/docs/services/identite/lldap/) |
+| `iam-03-federation-ldap` | Fédérer un annuaire dans le fournisseur | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/federation-ldap/) |
+| `iam-06-federation-saml` | Fédérer une application en SAML | lab | [guide](https://www.stephane-robert.info/docs/services/identite/fondamentaux/saml/) |
+| `iam-11-federation-externe` | Déléguer la connexion à un fournisseur externe | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/federation-entrante/) |
+| `iam-12-depanner-integration` | Réparer une intégration qui ne marche plus | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/depanner-integration/) |
+| `iam-epreuve-n1` | Épreuve de niveau 1 : monter un fournisseur, fédérer, brancher une application et une API | capstone | [guide](https://www.stephane-robert.info/docs/services/identite/epreuve-niveau-1/) |
 
 ### Niveau 2 : exploiter et gouverner
 
@@ -252,13 +252,13 @@ le fournisseur, et décrire le realm en code. Se termine par l'épreuve finale.
 
 | Lab (id) | Titre | Type | Guide compagnon |
 |---|---|---|---|
-| `iam-07-mfa-keycloak` | Exiger un second facteur, de certains seulement | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/mfa-flows/) |
-| `iam-08-depart-collaborateur` | Couper les accès de quelqu'un qui part | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/) |
-| `iam-13-revue-des-acces` | Automatiser le cycle de vie, et conduire une vraie revue | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/) |
-| `iam-14-plateforme` | Faire authentifier un cluster et un outil par le fournisseur | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/plateforme/) |
-| `iam-09-sauvegarde-montee-version` | Sauvegarder ce qui doit l'être, monter de version, et prouver que rien n'est perdu | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/production/) |
-| `iam-10-realm-as-code` | Décrire un realm en code, l'appliquer, et rattraper la dérive | lab | [guide](https://blog.stephane-robert.info/docs/services/identite/keycloak/configuration-as-code/) |
-| `iam-epreuve` | Épreuve finale : une identité de bout en bout | capstone | [guide](https://blog.stephane-robert.info/docs/services/identite/epreuve-niveau-2/) |
+| `iam-07-mfa-keycloak` | Exiger un second facteur, de certains seulement | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/mfa-flows/) |
+| `iam-08-depart-collaborateur` | Couper les accès de quelqu'un qui part | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/) |
+| `iam-13-revue-des-acces` | Automatiser le cycle de vie, et conduire une vraie revue | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/revue-des-acces/) |
+| `iam-14-plateforme` | Faire authentifier un cluster et un outil par le fournisseur | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/plateforme/) |
+| `iam-09-sauvegarde-montee-version` | Sauvegarder ce qui doit l'être, monter de version, et prouver que rien n'est perdu | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/production/) |
+| `iam-10-realm-as-code` | Décrire un realm en code, l'appliquer, et rattraper la dérive | lab | [guide](https://www.stephane-robert.info/docs/services/identite/keycloak/configuration-as-code/) |
+| `iam-epreuve` | Épreuve finale : une identité de bout en bout | capstone | [guide](https://www.stephane-robert.info/docs/services/identite/epreuve-niveau-2/) |
 
 _16 labs. Ce catalogue n'a pas encore de `scripts/gen_catalog.py`, donc ces
 tables se tiennent à la main : confrontez-les à `dsoxlab list-labs` quand vous

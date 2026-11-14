@@ -10,6 +10,54 @@ CORRECTIF corrige un énoncé ou un test sans changer ce qu'un lab prouve, et un
 incrément MAJEUR renomme ou retire des labs, ce qui casse la progression déjà
 enregistrée des apprenants.
 
+## [0.2.2] - 2026-10-23
+
+### Ajouté
+
+- Un verdict ne peut plus être commité avec ce qu'il mesure. Le hook
+  `verdicts-et-commun-separes` refuse un commit portant `validation-labs.json`
+  à côté de ce que le cycle joue : `challenge/tests/`, `setup.yaml`,
+  `cleanup.yaml`, `lab.yaml` d'un lab, et l'outillage partagé. Il est lui-même
+  éprouvé, dans les deux sens, par un hook à lui.
+
+  Cela ferme un cas **qu'aucune mesure ne rattrape après coup**. La péremption
+  d'un verdict se jugeait en comparant des DATES, et cette comparaison s'est
+  trompée dans les deux sens le 2026-10-22 : une correction commitée avec les
+  verdicts qu'elle périmait est passée pour saine, et des labs réattestés sur
+  une branche sont ressortis « à réattester » après leur fusion en squash,
+  contenu inchangé. Quand une pull request squashée retouche un test *après* sa
+  campagne, le commit unique porte les deux et le squash a détruit ce qui les
+  distinguait. Cela ne se constate pas, donc cela s'empêche.
+
+  L'énoncé reste autorisé à côté d'un relevé : il n'est pas joué par le cycle,
+  et l'interdire obligerait à une campagne pour une coquille.
+
+### Corrigé
+
+- `pipelineMustNotLeakSecretsInConfig` est retiré du `.plumber.yaml`, où il
+  était déclaré deux fois. Plumber a supprimé ce contrôle et répond « was
+  removed and is now ignored: secret detection is no longer part of Plumber;
+  remove this block ». Le garder laissait croire que la détection de secrets
+  était couverte ici. Elle ne l'est pas, et c'est `detect-private-key` qui s'en
+  approche, en hook.
+
+## [0.2.1] - 2026-10-19
+
+### Modifié
+
+- **Chaque `doc_url` pointe désormais `www.stephane-robert.info`.** Le site est
+  passé de `blog.` à `www.`, et l'ancien hôte redirige en 301 vers le même
+  chemin. Rien n'était cassé : `validate-structure --check-urls` suit les
+  redirections, et ce catalogue était vert avant qu'une ligne change. La
+  migration est une mise au propre et non une réparation : un `doc_url` doit
+  pointer la page, pas dépendre d'une redirection qu'il faudra bien retirer un
+  jour.
+
+  Les chemins sont identiques entre les deux hôtes : seul l'hôte a changé. Les
+  359 `doc_url` que les catalogues déclarent ont été cherchés dans le dépôt du
+  site, hors réseau : ils y existent tous, y compris vingt-trois pages que
+  l'ancien hôte rendait en 404.
+
 ## [0.2.0] - 2026-10-17
 
 ### Modifié

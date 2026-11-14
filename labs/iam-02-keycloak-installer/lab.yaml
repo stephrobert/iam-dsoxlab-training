@@ -21,7 +21,7 @@ skills:
   - oidc
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/installation/
+doc_url: https://www.stephane-robert.info/docs/services/identite/keycloak/installation/
 certification_tags: []
 runtime:
   type: vm

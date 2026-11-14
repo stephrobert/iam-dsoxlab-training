@@ -20,7 +20,7 @@ skills:
   - federation
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/fondamentaux/saml/
+doc_url: https://www.stephane-robert.info/docs/services/identite/fondamentaux/saml/
 certification_tags: []
 runtime:
   type: vm

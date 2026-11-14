@@ -21,7 +21,7 @@ skills:
   - api-security
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/services/identite/keycloak/proteger-une-api/
+doc_url: https://www.stephane-robert.info/docs/services/identite/keycloak/proteger-une-api/
 certification_tags: []
 runtime:
   type: vm

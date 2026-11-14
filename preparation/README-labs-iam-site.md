@@ -19,7 +19,7 @@ Plan de la formation : `todo/formation-iam-cadrage.md`.
 | Dépôt | `stephrobert/iam-dsoxlab-training`, cloné dans `~/Projets/iam-dsoxlab-training` (convention des autres catalogues) |
 | `repo.id` | `iam-dsoxlab-training` |
 | `repo.category` | `iam` (à confirmer contre le schéma `meta.schema.json` de dsoxlab) |
-| `blog_url` | `https://blog.stephane-robert.info/docs/services/identite/` |
+| `blog_url` | `https://www.stephane-robert.info/docs/services/identite/` |
 | Provider | `kvm` (et `incus` si le catalogue le permet) : Keycloak, sa base et l'annuaire tournent sur une VM, pas sur le poste |
 | Distros | `alma10` et `ubuntu24` (les seules utilisables, voir la skill `lab-vm-validation`) |
 

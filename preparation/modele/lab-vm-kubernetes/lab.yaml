@@ -14,7 +14,7 @@ skills:
   - dns
 distros:
   - ubuntu24
-doc_url: https://blog.stephane-robert.info/docs/conteneurs/orchestrateurs/kubernetes/services/
+doc_url: https://www.stephane-robert.info/docs/conteneurs/orchestrateurs/kubernetes/services/
 lab_type: lab
 estimated_time: 10m
 

@@ -14,7 +14,7 @@ construise dans une autre session.
 Créer, dans `~/Projets/iam-dsoxlab-training/` (ce dossier, dont `preparation/`
 est le seul contenu au départ), le **catalogue DSOXLab** de la formation
 « Gestion des identités et des accès (IAM) » du site
-`blog.stephane-robert.info` : **14 labs et 2 épreuves**, décrits un par un
+`www.stephane-robert.info` : **14 labs et 2 épreuves**, décrits un par un
 dans `fiches/`.
 
 **Fini veut dire**, pour chaque lab :
@@ -104,7 +104,7 @@ et `~/Projets/kubernetes-dsoxlab-training` (labs sur VM et cluster),
    format de `validation-labs.json`).
 2. Créer le squelette du dépôt : `meta.yml` (`repo.id: iam-dsoxlab-training`,
    `category` à confirmer contre le schéma, `blog_url:
-   https://blog.stephane-robert.info/docs/services/identite/`, provider
+   https://www.stephane-robert.info/docs/services/identite/`, provider
    `kvm`), README FR/EN, licence et fichiers communs repris du modèle.
 3. Construire le **socle** partagé : Compose Keycloak + PostgreSQL + LLDAP,
    **application témoin** (connexion OIDC) et **API témoin** (jetons d'accès),
@@ -148,7 +148,7 @@ fiches). Les leçons existent sur la branche `feat/formation-iam` du dépôt du
 site (worktree `~/Projets/test-astro-5/.claude/worktrees/formation-iam`),
 **pas encore fusionnée dans main** à la date de ce brief : vérifie leur URL
 publiée avant de figer les `doc_url`. Racine des URL :
-`https://blog.stephane-robert.info/docs/services/identite/`.
+`https://www.stephane-robert.info/docs/services/identite/`.
 
 | Ordre | Fiche | Leçon d'accueil (`doc_url`, sous la racine) | Statut de la leçon au 2026-10-15 |
 |---|---|---|---|
