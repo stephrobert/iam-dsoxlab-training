@@ -1,4 +1,35 @@
-# Challenge: both sides of a SAML exchange
+# The application that will not speak OIDC
+
+## The situation
+
+The partner company runs a document management tool. It is old, it works, and
+it will outlive everyone involved in this decision. It speaks SAML, and it will
+not be speaking anything else: there is no budget for that, and no reason.
+
+Your provider speaks SAML too. Everyone's does, because applications like this
+one exist in every company, and they are usually the ones that matter most.
+
+So the two must be introduced to each other, and SAML's way of doing that is
+an exchange of **metadata**. Each side publishes a document saying who it is,
+where it listens, and which certificate signs what it sends. Neither side
+guesses anything about the other.
+
+Then there is the part nobody mentions in the summaries. SAML does not redirect
+a browser the way OIDC does. It hands the browser a form and has it submit
+itself, twice, and the assertion travels inside it. That is why a SAML
+integration cannot be debugged with a redirect trace, and why a browser is
+part of the protocol rather than a convenience.
+
+What you are given: your provider with an account and a group, and a second
+realm standing in for the partner's tool, empty. What you do: both sides of the
+exchange. The client that issues signed assertions, and the identity provider
+that consumes them.
+
+Get it wrong in the right way and you will see it: the partner's tool will ask
+your user to fill in their own name. That means the assertion arrived, it was
+accepted, and it did not say enough.
+
+## Both sides of a SAML exchange
 
 Two realms on `idp.lab`, both served by the same Keycloak.
 
@@ -15,7 +46,7 @@ The witness application is already running on port `9080`, pointed at the
 **consumer**. It asks for the identity provider named `saml-formation`
 directly, so you will not see the consumer's own login page.
 
-## What is expected
+### What is expected
 
 **On the issuer side**, in `formation`:
 
@@ -36,7 +67,7 @@ directly, so you will not see the consumer's own login page.
 
 Then a sign-in, which creates the account.
 
-## What is proven, and how
+### What is proven, and how
 
 No test reads an XML assertion. They read what each side declares, then they
 **play the whole journey** the way a browser would, and finally they read the
@@ -49,7 +80,7 @@ account the consumer ended up with:
 - the account carries the email, the first name and the last name;
 - the account is in `devops`.
 
-## Constraints
+### Constraints
 
 - The alias is **`saml-formation`**. It decides the consumer's assertion
   consumer address, which the issuer's client must declare, and the witness
@@ -59,7 +90,7 @@ account the consumer ended up with:
 - Read the issuer's certificate from its **metadata**. Anywhere else is a
   different certificate, and the consumer would reject every assertion.
 
-## Three things measured, so you do not lose an afternoon to them
+### Three things measured, so you do not lose an afternoon to them
 
 **The email alone is not enough.** Without the first name and the last name,
 the consumer stops on « Update Account Information » and the sign-in never

@@ -1,4 +1,35 @@
-# Challenge: an API that asks the right questions
+# The API that trusts every signature
+
+## The situation
+
+The `notes` API is protected. Someone said so at the last review, and it is
+true in a sense: it refuses a call with no token, and it refuses a token whose
+signature does not hold. It was tested. It works.
+
+Last week the company added a second API, for invoices. Same provider, same
+realm, same keys. A developer wiring the invoice client noticed something while
+debugging: the token his client had been issued, meant for the invoice API,
+also opened `notes`. Every note, for every user, with a token that was never
+intended for this service.
+
+Nothing was broken. No key leaked, no bug in the signature check. The API
+simply never asked the one question that mattered: **is this token for me?**
+
+A signature proves where a token comes from. It says nothing about who it is
+for, nor whether it is still valid, nor what its holder is allowed to do. Those
+are three separate claims, and an API that skips them is open to anyone holding
+any token from the same provider.
+
+You have the API, in that exact state, running on `idp.lab`. You also have a
+second API declared beside it, for one purpose: to issue you a token that is
+perfectly valid and simply not yours. Use it. Watch the API accept it.
+
+Then close it, and while you are there, the backup service needs access too.
+It has no user, it runs at three in the morning, and it only ever reads. Give
+it exactly that, and nothing more: an unwatched machine account that can write
+is how data disappears quietly.
+
+## An API that asks the right questions
 
 The provider runs on `idp.lab`, port `8080`, realm `formation`. The API runs on
 port `8090`, from `/opt/iam-lab/api-notes/api.py`, and it is already started.
@@ -6,7 +37,7 @@ port `8090`, from `/opt/iam-lab/api-notes/api.py`, and it is already started.
 `/opt/iam-lab/identifiants-lab.txt` holds the test account and the names of the
 objects the setup placed for you.
 
-## What is already there, and what it is for
+### What is already there, and what it is for
 
 | Name | What it is |
 |---|---|
@@ -18,7 +49,7 @@ objects the setup placed for you.
 Start by using them. Get a token with `autre:lecture`, call `GET /notes` with
 it, and watch the API answer `200`. That is the state you are fixing.
 
-## What is expected
+### What is expected
 
 1. The API is declared as a **client** named **`notes-api`**, with no flow at
    all. Its client id is what tokens will name as their audience.
@@ -30,7 +61,7 @@ it, and watch the API answer `200`. That is the state you are fixing.
    **`service-sauvegarde`**, with a service account, holding **read only**.
 5. The service's secret is written in **no file**.
 
-## What is proven, and how
+### What is proven, and how
 
 The tests do not read your code. They send tokens and read what the API
 answers:
@@ -46,7 +77,7 @@ The distinction between `401` and `403` is graded, and it is not cosmetic.
 `403` says "I know who you are, and it is not enough", and retrying is
 pointless.
 
-## Constraints
+### Constraints
 
 - The names are fixed: `notes-api`, `service-sauvegarde`, `notes:lecture`,
   `notes:ecriture`. The tests look them up.
@@ -56,7 +87,7 @@ pointless.
   dependencies. The system `python3` has no JWT library.
 - Do not touch `autre-api` or `notes-cli`: they are the measuring instruments.
 
-## Two traps that cost others an afternoon
+### Two traps that cost others an afternoon
 
 **A scope does not change the audience.** Declaring `notes:lecture` puts
 nothing in `aud`. The audience arrives through a protocol mapper on the scope,
