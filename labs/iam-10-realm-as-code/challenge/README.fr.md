@@ -1,4 +1,48 @@
-# Challenge : décrire le realm, l'appliquer, rattraper la dérive
+# Quelqu'un a changé quelque chose
+
+## La situation
+
+Le realm fonctionne. Il a fallu trois semaines de clics dans la console pour y
+arriver, étalées sur quatre mois, par cinq personnes, et il fonctionne.
+Personne ne sait dire ce qu'il contient. Il existe une page de wiki qui liste
+les clients, écrite en mars, et deux de ces clients n'existent plus.
+
+Mardi dernier, quelque chose a cessé de marcher pour une application, et
+l'enquête a trouvé qu'une durée de jeton était passée de dix à trente minutes.
+Le changement est dans le journal des événements d'administration, avec une
+date et un nom de compte. Le compte appartient à quelqu'un qui ne travaille
+plus ici, et le journal dit ce qui a été changé, pas pourquoi.
+
+C'est le vrai coût d'une configuration qui ne vit que dans le serveur : non pas
+qu'elle dérive, mais que rien ne permet de distinguer un changement voulu d'une
+erreur. Les deux apparaissent de la même façon, les deux sont déjà en
+production, et le seul enregistrement de l'intention est la mémoire de
+quelqu'un.
+
+Vous allez donc l'écrire. Pas dans une page de wiki, qui dérive sans le dire à
+personne, mais dans des fichiers qu'un outil lit et fait respecter, pour que la
+question « que devrait contenir ce realm » ait une seule réponse, et que la
+question « quelqu'un l'a-t-il changé » se règle par une commande plutôt que par
+une enquête.
+
+Vous décrirez un petit realm : deux rôles, un groupe, un client public et un
+client confidentiel. Puis vous l'appliquerez, changerez quelque chose à la main
+comme le changement de mardi a été fait, et regarderez les fichiers reprendre
+le realm.
+
+Deux avertissements, tous deux sur ce que « versionné » implique.
+
+Un client confidentiel a un secret. Ne pas écrire ce secret dans vos fichiers
+est le geste évident, et il ne suffit pas : l'outil garde une trace de tout ce
+qu'il gère, et cette trace est un fichier sur le disque, avec les droits par
+défaut. Allez le regarder avant de décider que vous avez fini.
+
+Et l'outil s'authentifie quelque part pour faire son travail. Ce quelque part
+est un realm, et ce n'est pas celui que vous décrivez. Confondez les deux et
+vous appliquerez votre spécification sur le realm d'administration, ou sur
+celui dont les autres labs dépendent, et la notation vérifie les deux.
+
+## Décrire le realm, l'appliquer, rattraper la dérive
 
 `/opt/iam-lab/identifiants-lab.txt` **est le cahier des charges**. Il nomme le
 realm à créer, son nom d'affichage, sa durée de jeton en secondes, ses rôles,
@@ -10,7 +54,7 @@ rien n'est codé en dur, d'aucun côté.
 Terraform est installé. Le répertoire de travail est vide. Le realm n'existe
 pas.
 
-## Ce qui est attendu
+### Ce qui est attendu
 
 1. Des fichiers `.tf` dans le répertoire de travail qui **épinglent la version
    du provider**, et un fichier d'état : le realm doit être décrit, pas
@@ -30,7 +74,7 @@ pas.
    fichier d'état.
 8. Les realms `master` et `formation` intacts.
 
-## Où vont les justificatifs
+### Où vont les justificatifs
 
 Le provider lit `KEYCLOAK_URL`, `KEYCLOAK_USER`, `KEYCLOAK_PASSWORD` et
 `KEYCLOAK_REALM` dans l'environnement. Rien n'a besoin d'être écrit dans un
@@ -41,7 +85,7 @@ cahier des charges fixe le nom (`VARIABLE_SECRET_ATTENDUE`), transmise en
 `TF_VAR_<nom>`. Le nom est imposé parce que la notation rejoue votre code et
 doit pouvoir l'alimenter.
 
-## Trois choses mesurées sur cette machine
+### Trois choses mesurées sur cette machine
 
 **Le provider s'annonce « self-signed » au `terraform init`**, avec l'empreinte
 de sa clef. Ce n'est pas une alerte : c'est la signature d'un éditeur qui n'est
@@ -56,7 +100,7 @@ garde le mode que vous lui donnez, parce que l'outil écrit dans le fichier
 existant, tandis que `terraform.tfstate.backup` revient en `644` chaque fois.
 Protéger le fichier ne tient pas. Protéger le répertoire, oui.
 
-## Deux cas d'échec que la notation attrape
+### Deux cas d'échec que la notation attrape
 
 **Un secret écrit en clair**, mot de passe d'administration ou secret de
 client, dans un `.tf` ou un `.tfvars`. Le test connaît les vraies valeurs : il

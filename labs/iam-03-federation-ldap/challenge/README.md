@@ -1,4 +1,38 @@
-# Challenge: one source of truth, read only
+# Two lists of people, and nobody knows which one is right
+
+## The situation
+
+The directory holds the company's accounts. The identity provider holds its
+own. Both were filled in by hand, a few weeks apart, and they have been
+drifting ever since.
+
+Someone left in July. They are gone from the directory. They still sign in
+through the provider.
+
+Somebody's surname was corrected in the directory. The provider still shows the
+old one on every screen, and nobody can say which is the real one, because both
+are equally authoritative and equally wrong.
+
+There is only one way out of this, and it is not a synchronisation script. The
+provider must stop holding a copy, and start **reading** the directory. One
+source, one truth, and a deletion that takes effect everywhere because there is
+only one place to delete from.
+
+Keycloak can do that. It federates a directory: it reads the accounts, imports
+them so it can attach groups and sessions to them, and refuses to write back.
+That last part matters more than it sounds. A provider allowed to write into
+the directory means a correction made in a console changes the source, and
+within a month nobody knows where anything comes from.
+
+The directory is running, filled with three people and two groups. The provider
+is running, and knows nobody. Connect them, read only, groups included, and
+then sign in with an account the provider never created.
+
+One detail will cost you time if you let it. Both services run in containers,
+and a container's `localhost` is its own. The provider will tell you the
+federation is active, and import nobody, without a single error message.
+
+## One source of truth, read only
 
 The directory and the provider both run on `idp.lab`, in containers.
 `/opt/iam-lab/identifiants-lab.txt` holds the base DN, the two branches, the
@@ -8,7 +42,7 @@ The directory already holds what the first lab asks you to create: `aline`,
 `bruno` and `chloé`, in the groups `devops` and `lecteurs`. The provider knows
 nobody.
 
-## What is expected
+### What is expected
 
 1. A **user federation** of type LDAP in the `formation` realm, enabled, with
    **import on** and in **read only** mode.
@@ -20,7 +54,7 @@ nobody.
 5. `aline` can obtain a token on the realm with the password from
    `identifiants-lab.txt`.
 
-## What is proven, and how
+### What is proven, and how
 
 The tests do not read your configuration to judge it good. They look at what
 the provider **knows** and what it **refuses**:
@@ -36,7 +70,7 @@ the provider **knows** and what it **refuses**:
 The last one is the one that cannot be faked. A mode set with no effect looks
 exactly like a mode set correctly, until someone edits a name.
 
-## Constraints
+### Constraints
 
 - The realm is `formation`. One federation, not two: with two, priority
   decides who answers and the result stops being predictable.
@@ -45,7 +79,7 @@ exactly like a mode set correctly, until someone edits a name.
 - The accounts carry `inetOrgPerson`, and their identifier is `uid`.
 - Do not change anything in the directory: it is the source now.
 
-## The trap, stated plainly, because it costs an afternoon
+### The trap, stated plainly, because it costs an afternoon
 
 Keycloak runs in a container. Inside that container, `127.0.0.1` is the
 container itself, not the machine. Measured from it: `127.0.0.1:3890` is

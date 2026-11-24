@@ -1,4 +1,43 @@
-# Challenge : trouver la cause, et ne corriger que celle-là
+# Ça marchait vendredi
+
+## La situation
+
+Lundi matin, l'application de notes ne laisse plus entrer personne. Rien n'a
+été déployé pendant le week-end. Personne n'a touché à rien, ce que tout le
+monde dit et qui est généralement vrai.
+
+Quelqu'un a touché à quelque chose, et c'était probablement un changement de
+deux minutes fait avec de bonnes intentions : une URL copiée d'un environnement
+de recette, une case cochée en cherchant une autre, un client désactivé pendant
+un rangement. Ces changements sont invisibles dans tout historique, parce
+qu'ils ont été faits dans une console.
+
+Vous avez deux sources de vérité, et vous allez vous servir des deux.
+
+Le fournisseur **dit** ce qui ne va pas, à l'écran, dans une phrase qui nomme
+presque toujours le paramètre fautif. Personne ne la lit, parce qu'elle est
+enveloppée dans une page qui annonce « We are sorry... » et qui ressemble à une
+panne générique.
+
+Le fournisseur **enregistre** aussi ce qui s'est passé. Le journal d'événements
+du realm porte une ligne par tentative, avec un champ qui nomme la cause en un
+mot : `invalid_redirect_uri`, `client_disabled`,
+`invalid_client_credentials`. Lire ce journal est plus rapide que n'importe
+quelle supposition.
+
+Et il y a une troisième chose, qui est la raison pour laquelle ce lab est noté
+comme il l'est.
+
+Chacune de ces pannes peut être faite disparaître sans être corrigée. Élargissez
+l'URI de redirection en joker et l'erreur s'en va. Désactivez PKCE et toute une
+classe d'erreurs s'en va. Ouvrez l'octroi par mot de passe « juste pour
+vérifier » et l'application remarche. Tout cela fait fonctionner l'application
+lundi, et chacun de ces gestes laisse un trou que plus personne ne regardera.
+
+La notation vérifie que ça marche. Puis elle vérifie, un par un, que vous n'avez
+rien fait de cela.
+
+## Trouver la cause, et ne corriger que celle-là
 
 Le fournisseur tourne sur `idp.lab`, realm `formation`. L'application tourne
 sur le port `9080`, et sa connexion échoue.
@@ -12,7 +51,7 @@ vit dans l'application.
 Le **journal d'événements du realm est activé**, ce qui n'est pas le défaut.
 Servez-vous en.
 
-## Ce qui est attendu
+### Ce qui est attendu
 
 La connexion remarche, et l'état final est le bon :
 
@@ -22,7 +61,7 @@ La connexion remarche, et l'état final est le bon :
 4. l'URI de redirection est **exactement** celle de l'application, sans joker ;
 5. l'`issuer` de l'application pointe le realm `formation`.
 
-## Ce qui est prouvé, et comment
+### Ce qui est prouvé, et comment
 
 Six tests. Le premier joue tout le parcours et vérifie que l'application finit
 par afficher l'utilisateur connecté, avec un ID token validé.
@@ -41,7 +80,7 @@ Le dernier mérite attention : pointer l'application sur un autre realm produit
 une connexion qui **marche**. Elle authentifie simplement la mauvaise
 population.
 
-## Où regarder, dans l'ordre
+### Où regarder, dans l'ordre
 
 ```bash
 # 1. Que dit le fournisseur ? Jouez le parcours et lisez le message.
@@ -56,7 +95,7 @@ Puis le journal d'événements, qui nomme la cause en un mot. Puis l'état de
 l'application elle-même, sur `http://127.0.0.1:9080/etat`, qui dit ce qu'elle a
 lu et ce qu'elle a refusé.
 
-## Une chose à laquelle résister
+### Une chose à laquelle résister
 
 Quand vous trouvez la cause, corrigez **celle-là**. La tentation est de la
 corriger et, puisqu'on est dans l'écran, de relâcher deux autres choses qui ont

@@ -1,4 +1,30 @@
-# Challenge: three people, two groups, and one refusal to find
+# Before any provider, there is a directory
+
+## The situation
+
+The identity provider is installed and it works. It has exactly one account in
+it: the administrator who installed it. Nobody else exists, so nobody else can
+sign in.
+
+That is the normal state of things, and it is where every identity project
+begins. A provider does not invent people. It reads them somewhere, and that
+somewhere is a directory.
+
+You have LLDAP running on `idp.lab`, with its tree and its administrator. Three
+people are joining: Aline in the operations team, Bruno who straddles
+operations and auditing, Chloé who only ever reads. Two groups will carry those
+roles, and the next lab will teach the provider to read them.
+
+The job sounds like five minutes of LDIF, and it is not, because LLDAP is a
+**lightweight** directory. It speaks LDAP, it accepts some writes, and it
+refuses others in ways that are not obvious. One of those refusals looks
+exactly like a success.
+
+Find out which, and get the memberships in place anyway. Then restart the
+container and look again: a directory that forgets is not a directory, and the
+only way to know is to try.
+
+## Three people, two groups, and one refusal to find
 
 The directory runs on `idp.lab`. `/opt/iam-lab/identifiants-lab.txt` holds its
 base DN, its administrator DN and password, and both of its URLs.
@@ -6,7 +32,7 @@ base DN, its administrator DN and password, and both of its URLs.
 LLDAP imposes its own tree: `ou=people` and `ou=groups` already exist, and it
 will not accept an organisational unit you create elsewhere. Work inside them.
 
-## What is expected
+### What is expected
 
 Three accounts under `ou=people`:
 
@@ -26,7 +52,7 @@ Two groups under `ou=groups`, with exactly these members:
 Exactly those. A group with one person too many grants a right nobody asked
 for, and that is what an access review digs up months later.
 
-## What is proven, and how
+### What is proven, and how
 
 Every test runs `ldapsearch`, because that is what an identity provider will
 do next:
@@ -40,7 +66,7 @@ do next:
 The last one is not a formality. A declared volume does not prove it is mounted
 where the data is written, and the only way to know is to stop the thing.
 
-## Constraints
+### Constraints
 
 - The names are fixed: the tests look them up.
 - Do not touch the `admin` account or the `lldap_*` groups: they are the
@@ -48,7 +74,7 @@ where the data is written, and the only way to know is to stop the thing.
 - Nothing is required about *how* you write. LDIF, the API, the web interface:
   the tests read the result.
 
-## The refusal that looks like a success
+### The refusal that looks like a success
 
 LLDAP is a lightweight directory, and it does not accept every write an LDAP
 server usually does. One of its refusals is silent: the command returns

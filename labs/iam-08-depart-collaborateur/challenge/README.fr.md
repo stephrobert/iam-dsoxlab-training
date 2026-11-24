@@ -1,4 +1,34 @@
-# Challenge : quatre gestes, dans le bon ordre
+# Elle est partie en mars
+
+## La situation
+
+Morgane a posé sa démission en février et est partie fin mars. Sa responsable
+l'a dit aux ressources humaines, les ressources humaines l'ont dit à l'équipe
+qui tient l'annuaire, et quelqu'un a coché une case.
+
+En novembre, pendant un audit, quelqu'un sort la liste des comptes et la trouve.
+Pas supprimée, ce qui est juste. Pas désactivée non plus, ce qui ne l'est pas.
+Toujours dans le groupe d'exploitation, ce qui lui donne accès à la production.
+Et avec un rôle que personne ne se souvient d'avoir accordé, attaché
+directement à son compte plutôt qu'à un groupe, raison pour laquelle aucune
+revue par groupes ne l'a jamais montré.
+
+L'audit pose une seule question : a-t-elle pu se connecter entre avril et
+novembre ? Personne ne peut répondre, parce que personne n'a regardé.
+
+Vous avez la même situation, huit mois plus tôt. Morgane est dans l'annuaire,
+fédérée dans le fournisseur, dans un groupe, avec un rôle accordé directement,
+et avec **une session ouverte en ce moment**.
+
+Quatre gestes, et l'ordre compte plus qu'on ne le croirait. Trois d'entre eux
+échouent en silence s'ils sont mal faits : le fournisseur vous dira que cela a
+marché, la console montrera ce que vous attendez, et l'accès sera toujours là.
+
+Puis écrivez le fichier de revue. Pas parce qu'un processus l'exige, mais parce
+que la seule réponse à la question de l'audit est un fichier daté du jour du
+départ qui dit ce qu'elle avait. Tout le reste est un souvenir.
+
+## Quatre gestes, dans le bon ordre
 
 L'annuaire est fédéré dans le realm `formation`, en lecture seule, avec son
 mappeur de groupes. Quatre personnes y figurent, et `morgane` part.
@@ -8,7 +38,7 @@ directement, et où écrire la revue.
 `/opt/iam-lab/jetons-de-la-session.txt` porte les jetons d'une session que le
 setup a ouverte pour elle : les tests s'en servent, ne les modifiez pas.
 
-## Ce qui est attendu
+### Ce qui est attendu
 
 1. `morgane` n'appartient plus à aucun groupe, et ne détient plus le rôle qui
    lui avait été accordé directement.
@@ -21,7 +51,7 @@ setup a ouverte pour elle : les tests s'en servent, ne les modifiez pas.
 
 Et les trois personnes qui restent doivent être intactes.
 
-## Trois choses qui échouent en silence
+### Trois choses qui échouent en silence
 
 **Une session survit à la désactivation.** Mesuré : après avoir passé le compte
 à désactivé, il compte encore une session active. La fiche du compte dit
@@ -36,14 +66,14 @@ la source ET la synchronisation du mappeur, il rend toujours les anciens
 groupes, et la synchronisation répond pourtant `5 updated groups`. Il y a une
 troisième chose à faire.
 
-## Et une chose que l'ordre décide
+### Et une chose que l'ordre décide
 
 Une synchronisation **ne reprend pas un compte désactivé**. Désactivez d'abord,
 et l'appartenance que vous avez retirée à la source reste dans le fournisseur
 pour de bon, sans erreur nulle part. Les gestes ont un ordre, et ce n'est pas
 celui que l'urgence suggère.
 
-## Le fichier de revue
+### Le fichier de revue
 
 Du JSON, au chemin donné par `identifiants-lab.txt`. Une entrée par compte,
 chacune nommant le compte, ses groupes et ses rôles. La forme vous appartient

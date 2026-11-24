@@ -1,4 +1,45 @@
-# Challenge: back up, upgrade, and prove it
+# The backup nobody has ever restored
+
+## The situation
+
+The upgrade is scheduled for Thursday evening. The provider is two minor
+versions behind, one of them carries a fix somebody needs, and the change
+request says, under the heading « rollback plan », the words « restore from
+backup ».
+
+There is a backup. It runs every night, it has never failed, and nobody has
+ever restored it. Those two facts are usually stated as one reassuring
+sentence, and they are not the same fact at all. A backup that has never been
+restored is a file whose contents nobody has checked, produced by a command
+whose exit code nobody reads, about a database whose shape has changed twice
+since the script was written.
+
+There is also an export. Somebody exported the realm last month, before a
+configuration change, and kept the file. It is sitting in a shared folder
+called `backups`, and it is four hundred kilobytes of JSON that looks
+complete, with the realm, the clients, the authentication flows and the keys
+all in it.
+
+It is not a backup, and the way it is not a backup is worth your afternoon.
+The file somebody kept is one of two that the export command produces, and it
+is the one that contains no accounts. Restore from it on Friday morning and you
+will have a realm with every setting in place, every client configured, and
+nobody able to log in.
+
+What it also does not contain, regardless of which file you keep, is the record
+of who logged in and when. That record lives in the database, in tables the
+export does not look at. Lose it in an upgrade and the question « who had
+access in March » stops having an answer, permanently.
+
+So: an instance is running, one version behind, with accounts, clients and a
+few days of audit trail. Back it up properly, upgrade it, and then prove that
+nothing was lost, which means proving it about the trail as well as the
+accounts.
+
+The order matters, and it is the only part of this lab that cannot be fixed
+afterwards.
+
+## Back up, upgrade, and prove it
 
 `/opt/iam-lab/identifiants-lab.txt` names the instance's URL, its directory,
 its environment file, both container names, the realm, the account password,
@@ -8,7 +49,7 @@ directories where your backup and your export are expected.
 The instance runs **on its own ports** (`8081` and `9001`): the socle on `8080`
 belongs to the other labs and must not move.
 
-## What is expected
+### What is expected
 
 1. A **database backup** in `REPERTOIRE_SAUVEGARDES`, taken **before** the
    upgrade, which **restores into an empty database** with the accounts in it.
@@ -20,7 +61,7 @@ belongs to the other labs and must not move.
 5. The **audit trail** still in the database.
 6. An account that still logs in.
 
-## What the grading actually checks about your backup
+### What the grading actually checks about your backup
 
 It does not look at the file's name or size alone. It **creates a database,
 restores your backup into it, counts the accounts, and drops it**. A file that
@@ -32,7 +73,7 @@ version's container**. A backup taken afterwards fails, and it fails on
 purpose: it describes a state you no longer need and cannot restore the one you
 might.
 
-## Four things measured on this machine
+### Four things measured on this machine
 
 **`kc.sh export` run inside the running container exits 1** on « Unable to
 start the management interface on 0.0.0.0:9000: Address already in use », **and
@@ -52,7 +93,7 @@ configuration (`eventsEnabled`, `enabledEventTypes`), not the events. The trail
 lives in `event_entity` and `admin_event_entity`, in the database, and that is
 why an export is not a backup.
 
-## One thing to know about the upgrade itself
+### One thing to know about the upgrade itself
 
 The schema migrates automatically on startup, and says so in the logs. Worth
 knowing before you change the image: the 26.8 migration notes state that past

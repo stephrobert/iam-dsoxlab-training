@@ -1,4 +1,37 @@
-# Challenge : les deux côtés d'un échange SAML
+# L'application qui ne parlera pas OIDC
+
+## La situation
+
+L'entreprise partenaire exploite un outil de gestion documentaire. Il est
+ancien, il fonctionne, et il survivra à tous ceux qui participent à cette
+décision. Il parle SAML, et il ne parlera rien d'autre : il n'y a pas de budget
+pour cela, et aucune raison.
+
+Votre fournisseur parle SAML aussi. Celui de tout le monde le parle, parce que
+des applications comme celle-là existent dans toutes les entreprises, et que ce
+sont souvent les plus importantes.
+
+Il faut donc les présenter l'un à l'autre, et la façon qu'a SAML de le faire est
+un échange de **métadonnées**. Chaque côté publie un document qui dit qui il
+est, où il écoute, et quel certificat signe ce qu'il envoie. Aucun des deux ne
+devine quoi que ce soit de l'autre.
+
+Puis il y a la partie dont les résumés ne parlent pas. SAML ne redirige pas un
+navigateur comme OIDC le fait. Il lui remet un formulaire et le lui fait
+soumettre tout seul, deux fois, et l'assertion voyage dedans. C'est pourquoi une
+intégration SAML ne se dépanne pas avec une trace de redirections, et pourquoi
+un navigateur fait partie du protocole plutôt que d'en être une commodité.
+
+Ce qu'on vous donne : votre fournisseur avec un compte et un groupe, et un
+second realm qui tient le rôle de l'outil du partenaire, vide. Ce que vous
+faites : les deux côtés de l'échange. Le client qui émet des assertions signées,
+et le fournisseur d'identité qui les consomme.
+
+Ratez-le de la bonne façon et vous le verrez : l'outil du partenaire demandera à
+votre utilisateur de saisir son propre nom. Cela veut dire que l'assertion est
+arrivée, qu'elle a été acceptée, et qu'elle n'en disait pas assez.
+
+## Les deux côtés d'un échange SAML
 
 Deux realms sur `idp.lab`, servis par le même Keycloak.
 
@@ -16,7 +49,7 @@ L'application témoin tourne déjà sur le port `9080`, pointée sur le
 `saml-formation`, et vous ne verrez donc pas la page de connexion du
 consommateur.
 
-## Ce qui est attendu
+### Ce qui est attendu
 
 **Côté émetteur**, dans `formation` :
 
@@ -37,7 +70,7 @@ consommateur.
 
 Puis une connexion, qui crée le compte.
 
-## Ce qui est prouvé, et comment
+### Ce qui est prouvé, et comment
 
 Aucun test ne lit une assertion XML. Ils lisent ce que chaque côté déclare, puis
 ils **jouent tout le parcours** comme un navigateur le ferait, et enfin ils
@@ -50,7 +83,7 @@ lisent le compte que le consommateur a obtenu :
 - le compte porte l'adresse, le prénom et le nom ;
 - le compte est dans `devops`.
 
-## Contraintes
+### Contraintes
 
 - L'alias est **`saml-formation`**. Il décide de l'adresse de réception du
   consommateur, que le client de l'émetteur doit déclarer, et l'application
@@ -60,7 +93,7 @@ lisent le compte que le consommateur a obtenu :
 - Lisez le certificat de l'émetteur dans ses **métadonnées**. Ailleurs, c'est un
   autre certificat, et le consommateur rejetterait toutes les assertions.
 
-## Trois choses mesurées, pour ne pas y perdre une après-midi
+### Trois choses mesurées, pour ne pas y perdre une après-midi
 
 **L'adresse seule ne suffit pas.** Sans le prénom et le nom, le consommateur
 s'arrête sur « Update Account Information » et la connexion n'aboutit jamais.
